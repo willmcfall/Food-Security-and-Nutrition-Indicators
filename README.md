@@ -1,10 +1,8 @@
-# Food-Security-and-Nutrition-Indicators
-
-Food Security Indicators
+## Food Security Indicators
 -	FCS Score, FCS Classification
-o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+  - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	FCS-N Score, FCS-N Classification
-o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+  - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	rCSI Score, rCSI Classification
 o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	LCSI Score, LCSI Classification
@@ -17,7 +15,8 @@ o	source: https://www.fantaproject.org/sites/default/files/resources/HHS-Indicat
 o	source: https://www.fao.org/in-action/voices-of-the-hungry/analyse-data/en/
 -	CARI Classification 
 o	source: https://docs.wfp.org/api/documents/WFP-0000134704/download/?_ga=2.35141089.1974247889.1661245240-2087738911.1659422870
-Nutrition and IYCF Indicators
+
+## Nutrition and IYCF Indicators
 -	EvBF Classification
 o	source: https://www.who.int/publications-detail-redirect/9789240018389
 -	EIBF Classification
