@@ -1,10 +1,10 @@
 ## Food Security Indicators
 -	FCS Score, FCS Classification
-  - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+    - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	FCS-N Score, FCS-N Classification
-  - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+    - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	rCSI Score, rCSI Classification
-o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+    - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	LCSI Score, LCSI Classification
 o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	FES Score, FES Classification
