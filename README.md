@@ -6,15 +6,15 @@
 -	rCSI Score, rCSI Classification
     - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	LCSI Score, LCSI Classification
-o	source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
+    - source: https://docs.wfp.org/api/documents/WFP-0000141917/download/
 -	FES Score, FES Classification
-o	source: https://inddex.nutrition.tufts.edu/data4diets/indicator/household-food-expenditure-share
+    - source: https://inddex.nutrition.tufts.edu/data4diets/indicator/household-food-expenditure-share
 -	HHS Score, HHS Classification 
-o	source: https://www.fantaproject.org/sites/default/files/resources/HHS-Indicator-Guide-Aug2011.pdf
+    - source: https://www.fantaproject.org/sites/default/files/resources/HHS-Indicator-Guide-Aug2011.pdf
 -	FIES Score, FIES Classification
-o	source: https://www.fao.org/in-action/voices-of-the-hungry/analyse-data/en/
+    - source: https://www.fao.org/in-action/voices-of-the-hungry/analyse-data/en/
 -	CARI Classification 
-o	source: https://docs.wfp.org/api/documents/WFP-0000134704/download/?_ga=2.35141089.1974247889.1661245240-2087738911.1659422870
+    - source: https://docs.wfp.org/api/documents/WFP-0000134704/download/?_ga=2.35141089.1974247889.1661245240-2087738911.1659422870
 
 ## Nutrition and IYCF Indicators
 -	EvBF Classification
