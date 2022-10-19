@@ -18,43 +18,42 @@
 
 ## Nutrition and IYCF Indicators
 -	EvBF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	EIBF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	EBF2D Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	EBF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MixMF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	CBF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	ISSSF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MDD Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MMF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MMFF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MAD Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	EFF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	SwB Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	UFC Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	ZVF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	BoF Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	AG Classification
-o	source: https://www.who.int/publications-detail-redirect/9789240018389
+    - source: https://www.who.int/publications-detail-redirect/9789240018389
 -	MAM - MUAC Classification, MAM - WHZ Classification
-o	source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
+    - source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
 -	SAM - MUAC Classification, SAM - WHZ Classification, SAM - BP Classification
-o	source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
+    - source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
 -	GAM Classification
-o	source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
-
+    - source: https://www.humanitarianresponse.info/sites/www.humanitarianresponse.info/files/documents/files/cmam_guidelines_book_print.pdf
