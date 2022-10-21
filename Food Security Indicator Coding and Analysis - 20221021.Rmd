@@ -1,0 +1,1134 @@
+---
+title: "Food Security Indicator Coding and Analysis"
+author: "William Mcfall - WFP South Sudan RAM Officer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: espresso
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    number_sections: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+---
+
+
+```{r script_setup, include=FALSE, fig.align = "center", fig.width= 16, fig.height= 11, fig.asp= 0.618, out.width="100%"}
+
+############
+### Removes Objects in Memory
+############
+
+rm(list = ls())
+
+############
+### Establishes Default Settings for Knitr
+############
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	cache.path = "cache/html/" 
+)
+
+knitr::opts_knit$set(root.dir = 'XXX') 
+
+############
+### Establishes the FSNMS Project Working Directory
+############
+
+setwd('XXX')
+
+############
+### Loads the Required Libraries
+############
+
+library(gtsummary)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(mosaic)
+library(tidyverse)
+library(modelsummary)
+library(kableExtra) 
+library(foreign)
+library(arsenal)
+library(desctable)
+library(survey)
+library(srvyr) 
+library(naniar)
+library(rmarkdown)
+library(haven)
+library(labelled)
+library(sjlabelled)
+# library(xlsx)
+library(rlang)
+library(digitTests)
+library(skimr)
+library(ggrepel)
+library(janitor)
+library(skimr)
+library(skimr)
+library(ggmap)
+library(RM.weights)
+library("gt")
+library("stringr")
+library(sf)
+library(rgdal)
+library(FRK)
+
+
+```
+
+```{r data_import}
+
+########################################################################
+### Establishes the FSNMS Local File Path
+########################################################################
+
+file_path <- "./Data Input/cleaned_raw_data.xlsx"
+
+########################################################################
+### Creates Household-Level Food Security Dataset
+########################################################################
+
+## imports household-level food security dataset
+fsnms_data <- read_xlsx(file_path, sheet="data")
+
+```
+
+```{r point_map_prep}
+
+############
+### Creates Basemaps at the National and State Level
+############
+
+National_Map <- get_stamenmap(bbox = c(left = 23.80204, bottom = 2.5, right =
+  36.92313, top = 13.5), zoom = 6, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(National_Map)
+
+############
+### Creates Basemaps at the State Level
+############
+
+Central_Equatoria_Map <- get_stamenmap(bbox = c(left = 29.5, bottom = 3.5, right =
+  33, top = 6.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Central_Equatoria_Map)
+
+Eastern_Equatoria_Map <- get_stamenmap(bbox = c(left = 31.5, bottom = 3.5, right =
+  36.2, top = 6.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Eastern_Equatoria_Map)
+
+Western_Equatoria_Map <- get_stamenmap(bbox = c(left = 26, bottom = 4, right =
+  31, top = 7), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Western_Equatoria_Map)
+
+Unity_Map <- get_stamenmap(bbox = c(left = 28.5, bottom = 6.5, right =
+  31, top = 10.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Unity_Map)
+
+Upper_Nile_Map <- get_stamenmap(bbox = c(left = 30.5, bottom = 7.5, right =
+  34.5, top = 12.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Upper_Nile_Map)
+
+Lakes_Map <- get_stamenmap(bbox = c(left = 28, bottom = 5.5, right =
+  32.0, top = 8.0), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Lakes_Map)
+
+Western_Bahr_Ghazal_Map <- get_stamenmap(bbox = c(left = 24.0, bottom = 6.5, right =
+  29, top = 10.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Western_Bahr_Ghazal_Map)
+
+Northern_Bahr_Ghazal_Map <- get_stamenmap(bbox = c(left = 25.5, bottom = 7.5, right =
+  29, top = 11), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Northern_Bahr_Ghazal_Map)
+
+Warrap_Map <- get_stamenmap(bbox = c(left = 27.5, bottom = 6.5, right =
+  30, top = 10.5), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Warrap_Map)
+
+Jonglei_Map <- get_stamenmap(bbox = c(left = 30, bottom = 5.2, right =
+  35, top = 10), zoom = 8, maptype = c("toner-lite"),
+  crop = TRUE, messaging = FALSE, urlonly = FALSE,
+  color = c("color", "bw"), force = FALSE, where = tempdir())
+# ggmap(Jonglei_Map)
+
+
+```
+
+```{r chloropleth_map_prep}
+
+## https://mharinga.github.io/choropleth.html
+
+# read in the shapefile
+ss_county_shapefile <- st_read("./Data Input/Geospatial Data/SS_Admin2_2011.shp", quiet = TRUE)
+
+# recodes ID variable in the shapefile
+ss_county_shapefile %>% mutate(FSNMS_ID = case_when(FNID == 'SS2011A23204' ~ 'Morobo',
+FNID == 'SS2011A23203' ~ 'Lainya',
+FNID == 'SS2011A23206' ~ 'Yei',
+FNID == 'SS2011A23201' ~ 'Juba',
+FNID == 'SS2011A23205' ~ 'Terekeka',
+FNID == 'SS2011A23307' ~ 'Magwi',
+FNID == 'SS2011A23302' ~ 'Ikotos',
+FNID == 'SS2011A23305' ~ 'Kapoeta South',
+FNID == 'SS2011A23301' ~ 'Budi',
+FNID == 'SS2011A23308' ~ 'Torit',
+FNID == 'SS2011A23304' ~ 'Kapoeta North',
+FNID == 'SS2011A23303' ~ 'Kapoeta East',
+FNID == 'SS2011A22401' ~ 'Awerial',
+FNID == 'SS2011A22408' ~ 'Yirol West',
+FNID == 'SS2011A22406' ~ 'Wulu',
+FNID == 'SS2011A22404' ~ 'Rumbek East',
+FNID == 'SS2011A22405' ~ 'Rumbek North',
+FNID == 'SS2011A22403' ~ 'Rumbek Centre',
+FNID == 'SS2011A22407' ~ 'Yirol East',
+FNID == 'SS2011A22204' ~ 'Aweil South',
+FNID == 'SS2011A22201' ~ 'Aweil Centre',
+FNID == 'SS2011A22205' ~ 'Aweil West',
+FNID == 'SS2011A22203' ~ 'Aweil North',
+FNID == 'SS2011A22202' ~ 'Aweil East',
+FNID == 'SS2011A21304' ~ 'Leer',
+FNID == 'SS2011A21306' ~ 'Mayom',
+FNID == 'SS2011A21302' ~ 'Guit',
+FNID == 'SS2011A21309' ~ 'Rubkona',
+FNID == 'SS2011A21308' ~ 'Pariang',
+FNID == 'SS2011A22306' ~ 'Tonj South',
+FNID == 'SS2011A22304' ~ 'Tonj East',
+FNID == 'SS2011A22305' ~ 'Tonj North',
+FNID == 'SS2011A22303' ~ 'Gogrial West',
+FNID == 'SS2011A22307' ~ 'Twic',
+FNID == 'SS2011A22103' ~ 'Wau',
+FNID == 'SS2011A22101' ~ 'Jur River',
+FNID == 'SS2011A22102' ~ 'Raja',
+FNID == 'SS2011A23103' ~ 'Maridi',
+FNID == 'SS2011A23105' ~ 'Mundri West',
+FNID == 'SS2011A23104' ~ 'Mundri East',
+FNID == 'SS2011A23110' ~ 'Yambio',
+FNID == 'SS2011A23108' ~ 'Nzara',
+FNID == 'SS2011A23106' ~ 'Mvolo',
+FNID == 'SS2011A23109' ~ 'Tambura',
+FNID == 'SS2011A23107' ~ 'Nagero',
+FNID == 'SS2011A21203' ~ 'Bor South',
+FNID == 'SS2011A21208' ~ 'Pibor',
+FNID == 'SS2011A21210' ~ 'Twic East',
+FNID == 'SS2011A21209' ~ 'Pochalla',
+FNID == 'SS2011A21205' ~ 'Duk',
+FNID == 'SS2011A21201' ~ 'Akobo',
+FNID == 'SS2011A21202' ~ 'Ayod',
+FNID == 'SS2011A21207' ~ 'Nyirol',
+FNID == 'SS2011A21112' ~ 'Ulang',
+FNID == 'SS2011A21106' ~ 'Maiwut',
+FNID == 'SS2011A21104' ~ 'Luakpiny/Nasir',
+FNID == 'SS2011A21103' ~ 'Longochuk',
+FNID == 'SS2011A21110' ~ 'Panyikang',
+FNID == 'SS2011A21107' ~ 'Malakal',
+FNID == 'SS2011A21101' ~ 'Baliet',
+FNID == 'SS2011A21102' ~ 'Fashoda',
+FNID == 'SS2011A21109' ~ 'Melut',
+FNID == 'SS2011A21108' ~ 'Manyo',
+FNID == 'SS2011A21111' ~ 'Renk',
+FNID == 'SS2011A21105' ~ 'Maban',
+FNID == 'SS2011A23101' ~ 'Ezo',
+FNID == 'SS2011A21301' ~ 'Abiemnhom',
+FNID == 'SS2011A22301' ~ 'Abyei',
+FNID == 'SS2011A21305' ~ 'Mayendit',
+FNID == 'SS2011A21303' ~ 'Koch',
+FNID == 'SS2011A23102' ~ 'Ibba',
+FNID == 'SS2011A22402' ~ 'Cueibet',
+FNID == 'SS2011A22302' ~ 'Gogrial East',
+FNID == 'SS2011A21211' ~ 'Uror',
+FNID == 'SS2011A21206' ~ 'Fangak',
+FNID == 'SS2011A23202' ~ 'Kajo-keji',
+FNID == 'SS2011A21307' ~ 'Panyijiar',
+FNID == 'SS2011A23306' ~ 'Lafon',
+FNID == 'SS2011A21204' ~ 'Canal/Pigi')) -> ss_county_shapefile
+
+
+```
+
+
+```{r section_data_recode}
+
+########################################################################
+### Creates FCS Indicators
+########################################################################
+
+## Source Document:https://newgo.wfp.org/services/wfp-indicator-compendium-2022-2025
+
+# creates fcs component indicators 
+fsnms_data %>% mutate(FCSStap = as.numeric(interview.section_i.f01_note.F01A),
+                      FCSPulse = as.numeric(interview.section_i.f02_note.F02A),
+                      FCSDairy = as.numeric(interview.section_i.f03_note.F03A),
+                      FCSPr = as.numeric(interview.section_i.f04_note.F04A),
+                      FCSVeg = as.numeric(interview.section_i.f05_note.F05A),
+                      FCSFruit = as.numeric(interview.section_i.f06_note.F06A),
+                      FCSFat = as.numeric(interview.section_i.f07_note.F07A),
+                      FCSSugar = as.numeric(interview.section_i.f08_note.F08A),
+                      FCSCond = as.numeric(interview.section_i.f09_note.F09A)) -> fsnms_data
+
+# checks fcs component indicator validity
+fsnms_data %>% mutate(FCSStap = ifelse(FCSStap >= 0 & FCSStap <= 7, FCSStap, NA),
+                      FCSPulse = ifelse(FCSPulse >= 0 & FCSPulse <= 7, FCSPulse, NA),
+                      FCSDairy = ifelse(FCSDairy >= 0 & FCSDairy <= 7, FCSDairy, NA),
+                      FCSPr = ifelse(FCSPr >= 0 & FCSPr <= 7, FCSPr, NA),
+                      FCSVeg = ifelse(FCSVeg >= 0 & FCSVeg <= 7, FCSVeg, NA),
+                      FCSFruit = ifelse(FCSFruit >= 0 & FCSFruit <= 7, FCSFruit, NA),
+                      FCSFat = ifelse(FCSFat >= 0 & FCSFat <= 7, FCSFat, NA),
+                      FCSSugar = ifelse(FCSSugar >= 0 & FCSSugar <= 7, FCSSugar, NA),
+                      FCSCond = ifelse(FCSCond >= 0 & FCSCond <= 7, FCSCond, NA)) -> fsnms_data
+
+# creates fcs score indicator
+fsnms_data %>% mutate(FCS = FCSStap*2 + FCSPulse*3 + FCSDairy*4 + FCSPr*4 + FCSVeg*1 + FCSFruit*1 + FCSFat*0.5 + FCSSugar*0.5) -> fsnms_data
+
+# creates fcs classification indicator
+fsnms_data %>% mutate(FCS_Classification = case_when(FCS >= 0 & FCS <= 21 ~"Poor", FCS > 21 & FCS <= 35 ~ "Borderline", FCS > 35 ~ "Acceptable")) -> fsnms_data
+
+# table(fsnms_data$FCSStap, useNA = "ifany")
+# table(fsnms_data$FCSPulse, useNA = "ifany")
+# table(fsnms_data$FCSDairy, useNA = "ifany")
+# table(fsnms_data$FCSPr, useNA = "ifany")
+# table(fsnms_data$FCSVeg, useNA = "ifany")
+# table(fsnms_data$FCSFruit, useNA = "ifany")
+# table(fsnms_data$FCSSugar, useNA = "ifany")
+# table(fsnms_data$FCSCond, useNA = "ifany")
+# table(fsnms_data$FCS, useNA = "ifany")
+# table(fsnms_data$FCS_Classification, useNA = "ifany")
+
+########################################################################
+### Creates FCS-N Indicators
+########################################################################
+
+## Source Document:https://newgo.wfp.org/services/wfp-indicator-compendium-2022-2025
+
+# creates fcs-n component indicators 
+fsnms_data %>% mutate(FCSPrMeatF = as.numeric(interview.section_i.f041_note.F041A),
+                      FCSPrMeatO = as.numeric(interview.section_i.f042_note.F042A),
+                      FCSPrMeatFish = as.numeric(interview.section_i.f043_note.F043A),
+                      FCSPrMeatEggs = as.numeric(interview.section_i.f044_note.F044A),
+                      FCSVegOrg = as.numeric(interview.section_i.f051_note.F051A),
+                      FCSVegGre = as.numeric(interview.section_i.f052_note.F052A),
+                      FCSFruitOrg = as.numeric(interview.section_i.f061_note.F061A)) -> fsnms_data
+
+# creates list of vitamin a rich foods including dairy, organ meat, eggs, orange vegetables, green vegetables, and orange fruits
+FCSN_vitamina_list <- c("FCSDairy", "FCSPrMeatO", "FCSPrMeatEggs", "FCSVegOrg", "FCSVegGre", "FCSFruitOrg")
+
+# creates list of protein rich foods pulses and nuts, dairy, flesh meat, organ meat, fish, and eggs
+FCSN_protein_list <- c("FCSPulse", "FCSDairy", "FCSPrMeatF", "FCSPrMeatO", "FCSPrMeatFish", "FCSPrMeatEggs")
+
+# creates list of hem iron rich foods includes flesh meat, organ meat, and fish
+FCSN_hemiron_list <- c("FCSPrMeatF", "FCSPrMeatO", "FCSPrMeatFish")
+
+# creates fcs-n score indicator
+fsnms_data %>% mutate(FCSN_VITAMINA = rowSums(.[FCSN_vitamina_list], na.rm=TRUE),
+                      FCSN_PROTEIN = rowSums(.[FCSN_protein_list], na.rm=TRUE),
+                      FCSN_HEMIRON = rowSums(.[FCSN_hemiron_list], na.rm=TRUE)) -> fsnms_data
+
+# creates fcs-n classification indicator
+fsnms_data %>% mutate(FCSN_VITAMINA_CLASSIFICATION = case_when(FCSN_VITAMINA == 0 ~ "0 Days", FCSN_VITAMINA >= 1 & FCSN_VITAMINA <= 6 ~ "1-6 Days", FCSN_VITAMINA >= 7 & FCSN_VITAMINA <= 42 ~ "7 Days"),
+                      FCSN_PROTEIN_CLASSIFICATION = case_when(FCSN_PROTEIN == 0 ~ "0 Days", FCSN_PROTEIN >= 1 & FCSN_PROTEIN <= 6 ~ "1-6 Days", FCSN_PROTEIN >= 7 & FCSN_PROTEIN <= 42 ~ "7 Days"),
+                      FCSN_HEMIRON_CLASSIFICATION = case_when(FCSN_HEMIRON == 0 ~ "0 Days", FCSN_HEMIRON >= 1 & FCSN_HEMIRON <= 6 ~ "1-6 Days", FCSN_HEMIRON >= 7 & FCSN_HEMIRON <= 42 ~ "7 Days")) -> fsnms_data
+
+
+########################################################################
+### Creates rCSI Indicators
+########################################################################
+
+## Source Document:https://newgo.wfp.org/services/wfp-indicator-compendium-2022-2025
+
+# creates rCSI component indicators 
+fsnms_data %>% mutate(rCSILessQlty = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N01),
+                      rCSIBorrow = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N05),
+                      rCSIMealNb = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N04),
+                      rCSIMealSize = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N02),
+                      rCSIMealAdult = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N03)) -> fsnms_data
+
+# checks rCSI component indicator validity
+fsnms_data %>% mutate(rCSILessQlty  = ifelse(rCSILessQlty  >= 0 & rCSILessQlty <= 7, rCSILessQlty, NA),
+                      rCSIBorrow = ifelse(rCSIBorrow >= 0 & rCSIBorrow <= 7, rCSIBorrow, NA),
+                      rCSIMealNb = ifelse(rCSIMealNb >= 0 & rCSIMealNb <= 7, rCSIMealNb, NA),
+                      rCSIMealSize = ifelse(rCSIMealSize >= 0 & rCSIMealSize <= 7, rCSIMealSize, NA),
+                      rCSIMealAdult = ifelse(rCSIMealAdult >= 0 & rCSIMealAdult <= 7, rCSIMealAdult, NA)) -> fsnms_data
+
+
+# creates rCSI score indicator
+fsnms_data %>% mutate(rCSI = rCSILessQlty*1 + rCSIBorrow*2 + rCSIMealNb*1 + rCSIMealSize*1 + rCSIMealAdult*3) -> fsnms_data
+
+
+# creates rCSI score classification indicator
+fsnms_data %>% mutate(rCSI_Classification = case_when(rCSI >= 0 & rCSI <=3 ~ "rCSI - 0 to 3", rCSI >= 4 & rCSI <=18 ~ "rCSI - 4 to 18", rCSI >= 19 ~ "rCSI - 19+")) -> fsnms_data
+
+
+# creates binary rCSI score indicators
+fsnms_data %>% mutate(rCSILessQlty_yn  = ifelse(rCSILessQlty  > 0 & rCSILessQlty <= 7, 1, 0),
+                      rCSIBorrow_yn = ifelse(rCSIBorrow > 0 & rCSIBorrow <= 7, 1, 0),
+                      rCSIMealNb_yn = ifelse(rCSIMealNb > 0 & rCSIMealNb <= 7, 1, 0),
+                      rCSIMealSize_yn = ifelse(rCSIMealSize > 0 & rCSIMealSize <= 7, 1, 0),
+                      rCSIMealAdult_yn = ifelse(rCSIMealAdult > 0 & rCSIMealAdult<= 7, 1, 0)) -> fsnms_data
+
+# table(fsnms_data$rCSILessQlty, useNA = "ifany")
+# table(fsnms_data$rCSIBorrow, useNA = "ifany")
+# table(fsnms_data$rCSIMealNb, useNA = "ifany")
+# table(fsnms_data$rCSIMealSize, useNA = "ifany")
+# table(fsnms_data$rCSIMealAdult, useNA = "ifany")
+# table(fsnms_data$rCSILessQlty_yn, useNA = "ifany")
+# table(fsnms_data$rCSIBorrow_yn, useNA = "ifany")
+# table(fsnms_data$rCSIMealNb_yn, useNA = "ifany")
+# table(fsnms_data$rCSIMealSize_yn, useNA = "ifany")
+# table(fsnms_data$rCSIMealAdult_yn, useNA = "ifany")
+# table(fsnms_data$rCSI, useNA = "ifany")
+# table(fsnms_data$rCSI_Classification, useNA = "ifany")
+
+########################################################################
+### Creates Expenditure Indicators
+########################################################################
+
+############################################
+### Creates Non-Food Expenditure Indicators
+############################################
+
+## creates non-food consumable expenditure component indicators - cash 
+fsnms_data %>% mutate(HHExpNFAlcTobac_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFAlcTobac_MN_6M),
+                      HHExpNFHyg_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFHyg_MN_6M),
+                      HHExpNFTransp_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFTransp_MN_6M),
+                      HHExpNFEnerg_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEnerg_MN_6M),
+                      HHExpNFPhone_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFPhone_MN_6M), 
+                      HHExpNFMedServ_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedServ_MN_6M),
+                      HHExpNFMedGood_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedGood_MN_6M),
+                      HHExpNFCloth_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCloth_MN_6M),
+                      HHExpNFEduFee_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduFee_MN_6M),
+                      HHExpNFEduGood_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduGood_MN_6M),
+                      HHExpNFCstrc_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCstrc_MN_6M),
+                      HHExpNFSoc_MN_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFSoc_MN_6M)) -> fsnms_data
+
+## creates non-food consumable expenditure component indicators - credit
+fsnms_data %>% mutate(HHExpNFAlcTobac_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFAlcTobac_CRD_6M),
+                      HHExpNFHyg_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFHyg_CRD_6M),
+                      HHExpNFTransp_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFTransp_CRD_6M),
+                      HHExpNFEnerg_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEnerg_CRD_6M),
+                      HHExpNFPhone_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFPhone_CRD_6M),
+                      HHExpNFMedServ_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedServ_CRD_6M),
+                      HHExpNFMedGood_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedGood_CRD_6M),
+                      HHExpNFCloth_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCloth_CRD_6M),
+                      HHExpNFEduFee_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduFee_CRD_6M),
+                      HHExpNFEduGood_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduGood_CRD_6M),
+                      HHExpNFCstrc_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCstrc_CRD_6M),
+                      HHExpNFSoc_CRD_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFSoc_CRD_6M)) -> fsnms_data 
+
+## creates non-food consumable expenditure component indicators - gifts and aid
+fsnms_data %>% mutate(HHExpNFAlcTobac_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFAlcTobac_GiftAid_6M),
+                      HHExpNFHyg_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFHyg_GiftAid_6M),
+                      HHExpNFEnerg_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEnerg_GiftAid_6M),
+                      HHExpNFPhone_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFPhone_GiftAid_6M),
+                      HHExpNFMedServ_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedServ_GiftAid_6M),
+                      HHExpNFMedGood_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFMedGood_GiftAid_6M),
+                      HHExpNFCloth_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCloth_GiftAid_6M),
+                      HHExpNFEduFee_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduFee_GiftAid_6M),
+                      HHExpNFEduGood_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFEduGood_GiftAid_6M),
+                      HHExpNFCstrc_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFCstrc_GiftAid_6M),
+                      HHExpNFSoc_GiftAid_6M = as.numeric(interview.section_k.NonFoodConsumption_submodule.HHExpNFSoc_GiftAid_6M)) -> fsnms_data
+
+## creates non-food intermediate expenditure component indicators
+fsnms_data %>% mutate(HHExpNFAgriLandRent_Est_6M = as.numeric(interview.section_k.NonFoodIntermediate_submodule.HHExpNFAgriLandRent_Est_6M),
+                      HHExpNFAgriWorkf_Est_6M = as.numeric(interview.section_k.NonFoodIntermediate_submodule.HHExpNFAgriWorkf_Est_6M) ,
+                      HHExpNFFarmInp_Est_6M = as.numeric(interview.section_k.NonFoodIntermediate_submodule.HHExpNFFarmInp_Est_6M),
+                      HHExpNFLvstInp_Est_6M = as.numeric(interview.section_k.NonFoodIntermediate_submodule.HHExpNFLvstInp_Est_6M)) -> fsnms_data
+
+## creates non-food intermediate expenditure component indicators
+fsnms_data %>% mutate(HHExpNFSav_Est_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFSav_Est_6M),
+                      HHExpNFDebt_Est_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFDebt_Est_6M),
+                      HHExpNFRemit_Est_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFRemit_Est_6M),
+                      HHExpNFTax_Est_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFTax_Est_6M),
+                      HHExpNFTax_MN_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFTax_MN_6M),
+                      HHExpNFTax_CRD_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFTax_CRD_6M),
+                      HHExpNFDurab_CRD_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFDurab_CRD_6M),
+                      HHExpNFDurab_MN_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFDurab_MN_6M),
+                      HHExpNFDurab_GiftAid_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFDurab_GiftAid_6M),
+                      HHExpNFVehicle_MN_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFVehicle_MN_6M),
+                      HHExpNFVehicle_CRD_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFVehicle_CRD_6M),
+                      HHExpNFVehicle_GiftAid_6M = as.numeric(interview.section_k.NonFoodWealth_submodule.HHExpNFVehicle_GiftAid_6M)) -> fsnms_data 
+
+
+## creates list of non-food consumable expenditure component indicators - cash         
+HHExpNFTotal_MN_6M_list <- c("HHExpNFAlcTobac_MN_6M","HHExpNFHyg_MN_6M", "HHExpNFTransp_MN_6M", "HHExpNFEnerg_MN_6M", "HHExpNFPhone_MN_6M", "HHExpNFMedServ_MN_6M", "HHExpNFMedGood_MN_6M", "HHExpNFCloth_MN_6M","HHExpNFEduFee_MN_6M", "HHExpNFEduGood_MN_6M", "HHExpNFCstrc_MN_6M", "HHExpNFSoc_MN_6M")
+
+## creates list of non-food consumable expenditure component indicators - credit
+HHExpNFTotal_CRD_6M_list <- c("HHExpNFAlcTobac_CRD_6M","HHExpNFHyg_CRD_6M", "HHExpNFTransp_CRD_6M", "HHExpNFEnerg_CRD_6M", "HHExpNFPhone_CRD_6M", "HHExpNFMedServ_CRD_6M", "HHExpNFMedGood_CRD_6M", "HHExpNFCloth_CRD_6M","HHExpNFEduFee_CRD_6M", "HHExpNFEduGood_CRD_6M", "HHExpNFCstrc_CRD_6M", "HHExpNFSoc_CRD_6M")
+
+## creates list of non-food consumable expenditure component indicators - gift and aid
+HHExpNFTotal_GiftAid_6M_list <- c("HHExpNFAlcTobac_GiftAid_6M","HHExpNFHyg_GiftAid_6M", "HHExpNFEnerg_GiftAid_6M", "HHExpNFPhone_GiftAid_6M", "HHExpNFMedServ_GiftAid_6M", "HHExpNFMedGood_GiftAid_6M", "HHExpNFCloth_GiftAid_6M","HHExpNFEduFee_GiftAid_6M", "HHExpNFEduGood_GiftAid_6M", "HHExpNFCstrc_GiftAid_6M", "HHExpNFSoc_GiftAid_6M")
+
+## creates list of non-food intermediate expenditure component indicators
+HHExpNFIntermediate_6M_list <- c("HHExpNFAgriLandRent_Est_6M","HHExpNFAgriWorkf_Est_6M", "HHExpNFFarmInp_Est_6M", "HHExpNFLvstInp_Est_6M")
+
+## creates list of non-food wealth expenditure component indicators
+HHExpNFWealth_6M_list <- c("HHExpNFSav_Est_6M","HHExpNFDebt_Est_6M", "HHExpNFRemit_Est_6M", "HHExpNFTax_Est_6M", "HHExpNFTax_MN_6M", "HHExpNFTax_CRD_6M", "HHExpNFDurab_CRD_6M", "HHExpNFDurab_MN_6M", "HHExpNFDurab_GiftAid_6M", "HHExpNFVehicle_MN_6M", "HHExpNFVehicle_CRD_6M", "HHExpNFVehicle_GiftAid_6M")
+
+
+## creates variable for non-food expenditure indicators - 6 months
+fsnms_data %>% mutate(HHExpNFTotal_MN_6M = rowSums(.[HHExpNFTotal_MN_6M_list], na.rm=TRUE),
+                      HHExpNFTotal_CRD_6M = rowSums(.[HHExpNFTotal_CRD_6M_list], na.rm=TRUE),
+                      HHExpNFTotal_GiftAid_6M = rowSums(.[HHExpNFTotal_GiftAid_6M_list], na.rm=TRUE),
+                      HHExpNFIntermediate_6M = rowSums(.[HHExpNFIntermediate_6M_list], na.rm=TRUE),
+                      HHExpNFWealth_6M = rowSums(.[HHExpNFWealth_6M_list], na.rm=TRUE)) -> fsnms_data
+
+## creates variable for non-food expenditure indicators - 1 month
+fsnms_data %>% mutate(HHExpNFTotal_MN_1M = HHExpNFTotal_MN_6M/6,
+                      HHExpNFTotal_CRD_1M = HHExpNFTotal_CRD_6M/6,
+                      HHExpNFTotal_GiftAid_1M = HHExpNFTotal_GiftAid_6M/6,
+                      HHExpNFIntermediate_1M = HHExpNFIntermediate_6M/6,
+                      HHExpNFWealth_1M = HHExpNFWealth_6M/6) -> fsnms_data
+                      
+## creates variable for per non-food expenditure indicators - 1 month per capita
+fsnms_data %>% mutate(PCExpNFTotal_MN_1M = HHExpNFTotal_MN_1M/as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members),
+                      PCExpNFTotal_CRD_1M = HHExpNFTotal_CRD_1M/as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members),
+                      PCExpNFTotal_GiftAid_1M = HHExpNFTotal_GiftAid_1M/as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members),
+                      PCExpNFIntermediate_1M = HHExpNFIntermediate_1M/as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members),
+                      PCExpNFWealth_1M = HHExpNFWealth_1M/as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members)) -> fsnms_data
+
+# creates total non-food expenditure indicator - 1 month
+fsnms_data %>% mutate(HHExpNFTotal_1M = HHExpNFTotal_MN_1M + HHExpNFTotal_CRD_1M + HHExpNFTotal_GiftAid_1M + HHExpNFIntermediate_1M + HHExpNFWealth_1M) -> fsnms_data
+
+# creates total non-food expenditure indicator - 1 month per capita
+fsnms_data %>% mutate(PCExpNFTotal_1M = as.numeric(HHExpNFTotal_1M) / as.numeric(interview.b01_note.Cal_Total_family_members)) -> fsnms_data
+
+
+############################################
+### Creates Food Expenditure Indicators
+############################################
+
+# creates food expenditure component indicators 
+fsnms_data %>% mutate(HHExpFCer_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCer_MN_1M),
+                      HHExpFTub_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFTub_MN_1M),
+                      HHExpFPuls_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFPuls_MN_1M),
+                      HHExpFVeg_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFVeg_MN_1M), 
+                      HHExpFFrt_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFrt_MN_1M),
+                      HHExpFAnimMeat_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimMeat_MN_1M), 
+                      HHExpFAnimFish_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimFish_MN_1M),
+                      HHExpFFats_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFats_MN_1M), 
+                      HHExpFDairy_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFDairy_MN_1M), 
+                      HHExpFAnimEgg_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimEgg_MN_1M),
+                      HHExpFSgr_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFSgr_MN_1M),
+                      HHExpFCond_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCond_MN_1M), 
+                      HHExpFBeverage_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFBeverage_MN_1M), 
+                      HHExpFOut_MN_1M = as.numeric(interview.section_k.Food_submodule.HHExpFOut_MN_1M),
+                      HHExpFCer_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCer_CRD_1M), 
+                      HHExpFTub_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFTub_CRD_1M), 
+                      HHExpFPuls_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFPuls_CRD_1M), 
+                      HHExpFVeg_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFVeg_CRD_1M), 
+                      HHExpFFrt_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFrt_CRD_1M), 
+                      HHExpFAnimMeat_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimMeat_CRD_1M), 
+                      HHExpFAnimFish_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimFish_CRD_1M), 
+                      HHExpFFats_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFats_CRD_1M), 
+                      HHExpFDairy_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFDairy_CRD_1M), 
+                      HHExpFAnimEgg_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimEgg_CRD_1M), 
+                      HHExpFSgr_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFSgr_CRD_1M), 
+                      HHExpFCond_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCond_CRD_1M), 
+                      HHExpFBeverage_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFBeverage_CRD_1M),
+                      HHExpFOut_CRD_1M = as.numeric(interview.section_k.Food_submodule.HHExpFOut_CRD_1M),
+                      HHExpFCer_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCer_GiftAid_1M), 
+                      HHExpFTub_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFTub_GiftAid_1M), 
+                      HHExpFPuls_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFPuls_GiftAid_1M), 
+                      HHExpFVeg_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFVeg_GiftAid_1M), 
+                      HHExpFFrt_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFrt_GiftAid_1M),  
+                      HHExpFAnimMeat_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimMeat_GiftAid_1M), 
+                      HHExpFAnimFish_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimFish_GiftAid_1M), 
+                      HHExpFFats_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFats_GiftAid_1M), 
+                      HHExpFDairy_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFDairy_GiftAid_1M), 
+                      HHExpFAnimEgg_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimEgg_GiftAid_1M), 
+                      HHExpFSgr_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFSgr_GiftAid_1M), 
+                      HHExpFCond_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCond_GiftAid_1M), 
+                      HHExpFBeverage_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFBeverage_GiftAid_1M), 
+                      HHExpFOut_GiftAid_1M = as.numeric(interview.section_k.Food_submodule.HHExpFOut_GiftAid_1M), 
+                      HHExpFCer_Own_1M =  as.numeric(interview.section_k.Food_submodule.HHExpFCer_Own_1M), 
+                      HHExpFTub_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFTub_Own_1M), 
+                      HHExpFPuls_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFPuls_Own_1M), 
+                      HHExpFVeg_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFVeg_Own_1M), 
+                      HHExpFFrt_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFrt_Own_1M), 
+                      HHExpFAnimMeat_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimMeat_Own_1M), 
+                      HHExpFAnimFish_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimFish_Own_1M), 
+                      HHExpFFats_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFFats_Own_1M), 
+                      HHExpFDairy_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFDairy_Own_1M), 
+                      HHExpFAnimEgg_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFAnimEgg_Own_1M), 
+                      HHExpFSgr_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFSgr_Own_1M), 
+                      HHExpFCond_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFCond_Own_1M), 
+                      HHExpFBeverage_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFBeverage_Own_1M), 
+                      HHExpFOut_Own_1M = as.numeric(interview.section_k.Food_submodule.HHExpFOut_Own_1M)) -> fsnms_data
+                      
+# creates list of food expenditure variables for purchases with cash              
+HHExpFood_MN_1M_list <- c("HHExpFCer_MN_1M","HHExpFTub_MN_1M", "HHExpFPuls_MN_1M", "HHExpFVeg_MN_1M", "HHExpFFrt_MN_1M", "HHExpFAnimMeat_MN_1M", "HHExpFAnimFish_MN_1M", "HHExpFFats_MN_1M", "HHExpFDairy_MN_1M", "HHExpFAnimEgg_MN_1M", "HHExpFSgr_MN_1M", "HHExpFCond_MN_1M", "HHExpFBeverage_MN_1M", "HHExpFOut_MN_1M")
+
+# creates list of food expenditure variables for purchases with credit  
+HHExpFood_CRD_1M_list <- c("HHExpFCer_CRD_1M","HHExpFTub_CRD_1M", "HHExpFPuls_CRD_1M", "HHExpFVeg_CRD_1M", "HHExpFFrt_CRD_1M", "HHExpFAnimMeat_CRD_1M", "HHExpFAnimFish_CRD_1M", "HHExpFFats_CRD_1M", "HHExpFDairy_CRD_1M", "HHExpFAnimEgg_CRD_1M", "HHExpFSgr_CRD_1M", "HHExpFCond_CRD_1M", "HHExpFBeverage_CRD_1M", "HHExpFOut_CRD_1M")
+
+# creates list of food expenditure variables for valued gifts  
+HHExpFood_GiftAid_1M_list <- c("HHExpFCer_GiftAid_1M","HHExpFTub_GiftAid_1M", "HHExpFPuls_GiftAid_1M", "HHExpFVeg_GiftAid_1M", "HHExpFFrt_GiftAid_1M", "HHExpFAnimMeat_GiftAid_1M", "HHExpFAnimFish_GiftAid_1M", "HHExpFFats_GiftAid_1M", "HHExpFDairy_GiftAid_1M", "HHExpFAnimEgg_GiftAid_1M", "HHExpFSgr_GiftAid_1M", "HHExpFCond_GiftAid_1M", "HHExpFBeverage_GiftAid_1M", "HHExpFOut_GiftAid_1M")
+
+# creates list of food expenditure variables for valued barter trades
+HHExpFood_Own_1M_list <- c("HHExpFCer_Own_1M","HHExpFTub_Own_1M", "HHExpFPuls_Own_1M", "HHExpFVeg_Own_1M", "HHExpFFrt_Own_1M", "HHExpFAnimMeat_Own_1M", "HHExpFAnimFish_Own_1M", "HHExpFFats_Own_1M", "HHExpFDairy_Own_1M", "HHExpFAnimEgg_Own_1M", "HHExpFSgr_Own_1M", "HHExpFCond_Own_1M", "HHExpFBeverage_Own_1M", "HHExpFOut_Own_1M")
+
+
+# creates food expenditure indicator - 1 month
+fsnms_data %>% mutate(HHExpFood_MN_1M = rowSums(.[HHExpFood_MN_1M_list], na.rm=TRUE),
+                      HHExpFood_CRD_1M = rowSums(.[HHExpFood_CRD_1M_list], na.rm=TRUE),
+                      HHExpFood_GiftAid_1M = rowSums(.[HHExpFood_GiftAid_1M_list], na.rm=TRUE),
+                      HHExpFood_Own_1M = rowSums(.[HHExpFood_Own_1M_list], na.rm=TRUE)) %>% mutate(HHExpFood_1M = HHExpFood_MN_1M + HHExpFood_CRD_1M + HHExpFood_GiftAid_1M + HHExpFood_Own_1M) -> fsnms_data
+
+# creates food expenditure indicator - 1 month per capita
+fsnms_data %>% mutate(PCExpFood_1M = as.numeric(HHExpFood_1M) / as.numeric(interview.b01_note.Cal_Total_family_members)) -> fsnms_data
+
+############################################
+### Creates Total Expenditure Indicators
+############################################
+
+## creates total expenditure variable - 1 month
+fsnms_data$HHExpTotal_1M <- fsnms_data$HHExpFood_1M + fsnms_data$HHExpNFTotal_1M
+
+## creates total expenditure variable - 1 month per capita
+fsnms_data$PCExpTotal_1M <- as.numeric(fsnms_data$HHExpTotal_1M) / as.numeric(fsnms_data$interview.b01_note.Cal_Total_family_members)
+
+
+########################################################################
+### Creates FES Indicators
+########################################################################
+
+# creates food expenditure indicator
+fsnms_data %>% mutate(HHExpFood_MN_1M = rowSums(.[HHExpFood_MN_1M_list], na.rm=TRUE),
+                      HHExpFood_CRD_1M = rowSums(.[HHExpFood_CRD_1M_list], na.rm=TRUE),
+                      HHExpFood_GiftAid_1M = rowSums(.[HHExpFood_GiftAid_1M_list], na.rm=TRUE),
+                      HHExpFood_Own_1M = rowSums(.[HHExpFood_Own_1M_list], na.rm=TRUE)) %>% mutate(HHExpFood_1M = HHExpFood_MN_1M + HHExpFood_CRD_1M + HHExpFood_GiftAid_1M + HHExpFood_Own_1M) %>% mutate(PCExpFood_1M = as.numeric(HHExpFood_1M) / as.numeric(interview.b01_note.Cal_Total_family_members)) -> fsnms_data
+
+
+# creates food expenditure share indicator
+fsnms_data$FES <- as.numeric(fsnms_data$HHExpFood_1M)/as.numeric(fsnms_data$HHExpTotal_1M)
+fsnms_data$FES[fsnms_data$HHExpTotal_1M == 0] <- 1
+
+# creates food expenditure share classification indicator
+fsnms_data %>% mutate(FES_Classification = case_when(FES >= 0.00 & FES < .50 ~ "<50%", FES >= 0.50 & FES < .65 ~ "50%-65%", FES >= 0.65 & FES < .75 ~ "65%-75%", FES >= 0.75 & FES <= 1.0 ~ ">75%")) -> fsnms_data
+
+# table(fsnms_data$FES, useNA = "ifany")
+# table(fsnms_data$FES_Classification, useNA = "ifany")
+
+########################################################################
+### Creates HDDS Indicators
+########################################################################
+
+## Household Dietary Diversity Score 
+## Source Document:https://www.fao.org/nutrition/assessment/tools/household-dietary-diversity/en/#:~:text=Household%20dietary%20diversity%20Score%20(HDDS)%20is%20a%20qualitative%20measure%20of,dietary%20di## versity%20at%20individual%20level
+## A. Cereals
+## B. Root and Tubers
+## C. Vegetables
+## D. Fruits
+## E. Meat, Poultry, and Offals
+## F. Eggs
+## G. Fish and Seafood
+## H. Pulses, Legumes, and Nuts
+## I. Milk and Milk Products
+## J. Oils and Fats
+## K. Sugar and Honey
+## L. Miscellaneous
+
+## creates hdds cereals variable
+fsnms_data %>% mutate(HDDS_Cereals = case_when(interview.section_i.f011_note.F011B == "Yes" ~ 1, as.numeric(interview.section_i.f011_note.F011A) == 7 ~ 1, 
+as.numeric(interview.section_i.f011_note.F011A) == 0 ~ 0, interview.section_i.f011_note.F011B == "No" ~ 0, as.numeric(interview.section_i.f01_note.F01A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds roots variable
+fsnms_data %>% mutate(HDDS_Roots = case_when(interview.section_i.f012_note.F012B == "Yes" ~ 1, as.numeric(interview.section_i.f012_note.F012A) == 7 ~ 1, as.numeric(interview.section_i.f012_note.F012A) == 0 ~ 0, interview.section_i.f012_note.F012B == "No" ~ 0, as.numeric(interview.section_i.f01_note.F01A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds vegetables variable
+fsnms_data %>% mutate(HDDS_Vegetables = case_when(interview.section_i.f05_note.F05B == "Yes" ~ 1, as.numeric(interview.section_i.f05_note.F05A) == 7 ~ 1, as.numeric(interview.section_i.f05_note.F05A) == 0 ~ 0, interview.section_i.f05_note.F05B == "No" ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds fruits variable
+fsnms_data %>% mutate(HDDS_Fruits = case_when(interview.section_i.f06_note.F06B == "Yes" ~ 1, as.numeric(interview.section_i.f06_note.F06A) == 7 ~ 1, as.numeric(interview.section_i.f06_note.F06A) == 0 ~ 0, interview.section_i.f06_note.F06B == "No" ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds meats variable
+fsnms_data %>% mutate(HDDS_Meats = case_when(interview.section_i.f041_note.F041B == "Yes" | interview.section_i.f042_note.F042B == "Yes" ~ 1, interview.section_i.f041_note.F041B == "No" & interview.section_i.f042_note.F042B == "No" ~ 0, as.numeric(interview.section_i.f041_note.F041A) == 7 ~ 1, as.numeric(interview.section_i.f042_note.F042A) == 7 ~ 1, as.numeric(interview.section_i.f041_note.F041A) == 0 & as.numeric(interview.section_i.f042_note.F042A) == 0 ~ 0, as.numeric(interview.section_i.f04_note.F04A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds eggs variable
+fsnms_data %>% mutate(HDDS_Eggs = case_when(interview.section_i.f044_note.F044B == "Yes" ~ 1, interview.section_i.f044_note.F044B == "No" ~ 0,  as.numeric(interview.section_i.f044_note.F044A) == 7 ~ 1, as.numeric(interview.section_i.f044_note.F044A) == 0 ~ 0, as.numeric(interview.section_i.f04_note.F04A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds fish variable
+fsnms_data %>% mutate(HDDS_Fish = case_when(interview.section_i.f043_note.F043B == "Yes" ~ 1, interview.section_i.f043_note.F043B == "No" ~ 0, as.numeric(interview.section_i.f043_note.F043A) == 7 ~ 1, as.numeric(interview.section_i.f043_note.F043A) == 0 ~ 0, as.numeric(interview.section_i.f04_note.F04A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds pulses variable
+fsnms_data %>% mutate(HDDS_Pulses = case_when(interview.section_i.f02_note.F02B == "Yes" ~ 1, interview.section_i.f02_note.F02B == "No" ~ 0, as.numeric(interview.section_i.f02_note.F02A) == 7 ~ 1, as.numeric(interview.section_i.f02_note.F02A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds milk variable
+fsnms_data %>% mutate(HDDS_Milk = case_when(interview.section_i.f03_note.F03B == "Yes" ~ 1, interview.section_i.f03_note.F03B == "No" ~ 0, as.numeric(interview.section_i.f03_note.F03A) == 7 ~ 1, as.numeric(interview.section_i.f03_note.F03A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds oils variable
+fsnms_data %>% mutate(HDDS_Oils = case_when(interview.section_i.f07_note.F07B == "Yes" ~ 1, interview.section_i.f07_note.F07B == "No" ~ 0, as.numeric(interview.section_i.f07_note.F07A) == 7 ~ 1, as.numeric(interview.section_i.f07_note.F07A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds sugar variable
+fsnms_data %>% mutate(HDDS_Sugar = case_when(interview.section_i.f08_note.F08B == "Yes" ~ 1, interview.section_i.f08_note.F08B == "No" ~ 0, as.numeric(interview.section_i.f08_note.F08A) == 7 ~ 1, as.numeric(interview.section_i.f08_note.F08A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hdds condiments variable
+fsnms_data %>% mutate(HDDS_Condiments = case_when(interview.section_i.f09_note.F09B == "Yes" ~ 1, interview.section_i.f09_note.F09B == "No" ~ 0,
+as.numeric(interview.section_i.f09_note.F09A) == 7 ~ 1, as.numeric(interview.section_i.f09_note.F09A) == 0 ~ 0, TRUE ~ 0)) -> fsnms_data
+
+## creates hDDS variable
+fsnms_data$HDDS <- fsnms_data$HDDS_Cereals + fsnms_data$HDDS_Roots + fsnms_data$HDDS_Vegetables + fsnms_data$HDDS_Fruits + fsnms_data$HDDS_Meats + fsnms_data$HDDS_Eggs + fsnms_data$HDDS_Fish + fsnms_data$HDDS_Pulses + fsnms_data$HDDS_Milk + fsnms_data$HDDS_Oils + fsnms_data$HDDS_Sugar + fsnms_data$HDDS_Condiments
+
+## creates hdds classification variable
+fsnms_data %>% mutate(HDDS_Classification = case_when(as.numeric(HDDS) >= 5 & as.numeric(HDDS) <= 12 ~ "5-12 Food Groups", as.numeric(HDDS) >= 3 & as.numeric(HDDS) <= 4 ~ "3-4 Food Groups", as.numeric(HDDS) >= 0 & as.numeric(HDDS) <= 2 ~ "0-2 Food Groups")) -> fsnms_data
+
+# table(fsnms_data$HDDS_Cereals, useNA = "ifany")
+# table(fsnms_data$HDDS_Roots, useNA = "ifany")
+# table(fsnms_data$HDDS_Vegetables, useNA = "ifany")
+# table(fsnms_data$HDDS_Fruits, useNA = "ifany")
+# table(fsnms_data$HDDS_Meats, useNA = "ifany")
+# table(fsnms_data$HDDS_Eggs, useNA = "ifany")
+# table(fsnms_data$HDDS_Fish, useNA = "ifany")
+# table(fsnms_data$HDDS_Pulses, useNA = "ifany")
+# table(fsnms_data$HDDS_Milk, useNA = "ifany")
+# table(fsnms_data$HDDS_Oils, useNA = "ifany")
+# table(fsnms_data$HDDS_Sugar, useNA = "ifany")
+# table(fsnms_data$HDDS_Condiments, useNA = "ifany")
+# table(fsnms_data$HDDS, useNA = "ifany")
+# table(fsnms_data$HDDS_Classification, useNA = "ifany")
+
+
+########################################################################
+### Creates LCSI Indicators
+########################################################################
+
+## Source Document
+## https://newgo.wfp.org/services/wfp-indicator-compendium-2022-2025]
+
+## creates lcsi stress variable
+fsnms_data %>% mutate(LCSI_Stress = case_when(interview.section_n.section_n_lcsi.N08 == "Yes" | interview.section_n.section_n_lcsi.N08 == "No, because I have already engaged in this activity in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N09 == "Yes" | interview.section_n.section_n_lcsi.N09 == "No, because I have already sold those assets in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N10 == "Yes" | interview.section_n.section_n_lcsi.N10 == "No, because I already did this in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N11 == "Yes" | interview.section_n.section_n_lcsi.N11 == "No, because I have already engaged in this activity in the last 12 months and cannot continue doing it" ~ 1, TRUE ~ 0)) -> fsnms_data
+
+## creates lcsi crisis variable
+fsnms_data %>% mutate(LCSI_Crisis = case_when(interview.section_n.section_n_lcsi.N12 == "Yes" | interview.section_n.section_n_lcsi.N12 == "No, because I have already engaged in this activity in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N13 == "Yes" | interview.section_n.section_n_lcsi.N13 == "No, because I have already done this activity in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N14 == "Yes" | interview.section_n.section_n_lcsi.N14 == "No, because I already sold or ate all my seeds in the last 12 months and cannot continue doing it" ~ 1, TRUE ~ 0))  -> fsnms_data
+
+## creates lcsi emergency variable
+fsnms_data %>% mutate(LCSI_Emergency = case_when(interview.section_n.section_n_lcsi.N15 == "Yes" | interview.section_n.section_n_lcsi.N15 == "No, because I have already sold this asset in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N16 == "Yes" | interview.section_n.section_n_lcsi.N16 == "No, because I have already engaged in this activity in the last 12 months and cannot continue doing it" ~ 1, interview.section_n.section_n_lcsi.N17 == "Yes" | interview.section_n.section_n_lcsi.N17 == "No, because I have already engaged in this activity in the last 12 months and cannot continue doing it" ~ 1, TRUE ~ 0)) -> fsnms_data
+
+## creates lcsi classification variable
+fsnms_data %>% mutate(LCSI_Classification = case_when(LCSI_Emergency == 1 ~ "Emergency Coping", LCSI_Crisis == 1 ~ "Crises Coping", LCSI_Stress == 1 ~ "Stress Coping", TRUE ~ "No Coping")) -> fsnms_data
+
+# table(fsnms_data$interview.section_n.section_n_lcsi.N08, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N09, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N10, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N11, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N12, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N13, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N14, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N15, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N16, useNA = "ifany")
+# table(fsnms_data$interview.section_n.section_n_lcsi.N17, useNA = "ifany")
+# table(fsnms_data$LCSI_Stress, useNA = "ifany")
+# table(fsnms_data$LCSI_Crisis, useNA = "ifany")
+# table(fsnms_data$LCSI_Emergency, useNA = "ifany")
+# table(fsnms_data$LCSI_Classification, useNA = "ifany")
+
+########################################################################
+### Creates HHS Indicators
+########################################################################
+
+## Source Document:
+## https://www.fantaproject.org/monitoring-and-evaluation/household-hunger-scale-hhs
+
+## creates variables for no food to eat
+fsnms_data %>% mutate(HHS_Q1 = case_when(interview.section_j.J06 == "No" ~ 0, interview.section_j.J06 == "Yes" & interview.section_j.J06b == "Rarely (1–2 times)" ~ 1, interview.section_j.J06 == "Yes" & interview.section_j.J06b == "Sometimes (3–10 times)" ~ 1, interview.section_j.J06 == "Yes" & interview.section_j.J06b == "Often (more than 10 times)" ~ 2)) -> fsnms_data
+
+## creates variable for go to sleep hungry
+fsnms_data %>% mutate(HHS_Q2 = case_when(interview.section_j.J08 == "No" ~ 0, interview.section_j.J08 == "Yes" & interview.section_j.J08b == "Rarely (1–2 times)" ~ 1, interview.section_j.J08 == "Yes" & interview.section_j.J08b == "Sometimes (3–10 times)" ~ 1, interview.section_j.J08 == "Yes" & interview.section_j.J08b == "Often (more than 10 times)" ~ 2)) -> fsnms_data
+
+## creates variable for day and night no food
+fsnms_data %>% mutate(HHS_Q3 = case_when(interview.section_j.J09 == "No" ~ 0, interview.section_j.J09 == "Yes" & interview.section_j.J09b == "Rarely (1–2 times)" ~ 1, interview.section_j.J09 == "Yes" & interview.section_j.J09b == "Sometimes (3–10 times)" ~ 1, interview.section_j.J09 == "Yes" & interview.section_j.J09b == "Often (more than 10 times)" ~ 2)) -> fsnms_data
+
+## creates variable for HHS score
+fsnms_data %>% mutate(HHS = as.numeric(HHS_Q1 + HHS_Q2 + HHS_Q3)) -> fsnms_data
+
+## creates variable for HHS score classification
+fsnms_data %>% mutate(HHS_Classification = case_when(HHS >= 0 & HHS <= 1 ~ "Little to No Hunger", HHS >= 2 & HHS <= 3 ~ "Moderate Hunger", HHS >= 4 & HHS <= 6 ~ "Severe Hunger")) -> fsnms_data
+
+## creates variable for HHS categories
+fsnms_data %>% mutate(HHS_Q1_yn = ifelse(interview.section_j.J06 == "Yes", 1, 0),
+                      HHS_Q2_yn = ifelse(interview.section_j.J08 == "Yes", 1, 0),
+                      HHS_Q3_yn = ifelse(interview.section_j.J09 == "Yes", 1, 0),
+                      HHS_Q1_freq = interview.section_j.J06b,
+                      HHS_Q2_freq = interview.section_j.J08b,
+                      HHS_Q3_freq = interview.section_j.J09b) -> fsnms_data
+
+# table(fsnms_data$HHS_Q1, useNA = "ifany")
+# table(fsnms_data$HHS_Q2, useNA = "ifany")
+# table(fsnms_data$HHS_Q3, useNA = "ifany")
+# table(fsnms_data$HHS_Q1_yn, useNA = "ifany")
+# table(fsnms_data$HHS_Q2_yn, useNA = "ifany")
+# table(fsnms_data$HHS_Q3_yn, useNA = "ifany")
+# table(fsnms_data$HHS_Q1_freq, useNA = "ifany")
+# table(fsnms_data$HHS_Q2_freq, useNA = "ifany")
+# table(fsnms_data$HHS_Q3_freq, useNA = "ifany")
+# table(fsnms_data$HHS, useNA = "ifany")
+# table(fsnms_data$HHS_Classification, useNA = "ifany")
+
+########################################################################
+### Creates CARI Indicators
+########################################################################
+
+## Source Document:
+## https://www.wfp.org/publications/consolidated-approach-reporting-indicators-food-security-cari-guidelines
+
+# creates variable for FCS and rCSI CARI reclassification
+fsnms_data %>% mutate(FCS_rCSI_CARI = case_when(FCS_Classification == "Acceptable" & rCSI < 4 ~ 1, FCS_Classification == "Acceptable" & rCSI >= 4 ~ 2, FCS_Classification == "Borderline" ~ 3, FCS_Classification == "Poor" ~ 4)) -> fsnms_data
+
+# creates variable for LCSI CARI reclassification
+fsnms_data %>% mutate(LCSI_CARI = case_when(LCSI_Classification == "No Coping" ~ 1, LCSI_Classification == "Stress Coping" ~ 2, LCSI_Classification == "Crises Coping" ~ 3, LCSI_Classification == "Emergency Coping" ~ 4)) -> fsnms_data
+
+# creates variable for FES CARI reclassification
+fsnms_data %>% mutate(FES_CARI = case_when(FES_Classification == "<50%" ~ 1, FES_Classification == "50%-65%" ~ 2, FES_Classification == "65%-75%" ~ 3, FES_Classification == ">75%" ~ 4)) -> fsnms_data
+
+# creates variables for CARI Current Status (CS) and CARI Coping Capacity (CC)
+fsnms_data$CS_CARI <- fsnms_data$FCS_rCSI_CARI
+fsnms_data$CC_CARI <- (fsnms_data$LCSI_CARI + fsnms_data$FES_CARI)/2
+
+# creates variables for CARI Score
+fsnms_data$CARI <- (fsnms_data$CS_CARI + fsnms_data$CC_CARI)/2
+
+# creates variables for CARI Score Classification
+fsnms_data %>% mutate(CARI_Classification = case_when(CARI >= 3.5 ~ "Severely Food Insecure", CARI < 3.5 & CARI >= 2.5 ~ "Moderately Food Insecure", CARI < 2.5 & CARI >= 1.5 ~ "Marginally Food Secure", CARI < 1.5 & CARI >= 0 ~ "Food Secure")) -> fsnms_data
+
+# table(fsnms_data$FCS_rCSI_CARI, useNA = "ifany")
+# table(fsnms_data$LCSI_CARI, useNA = "ifany")
+# table(fsnms_data$FES_CARI, useNA = "ifany")
+# table(fsnms_data$CS_CARI, useNA = "ifany")
+# table(fsnms_data$CC_CARI, useNA = "ifany")
+# table(fsnms_data$CARI, useNA = "ifany")
+# table(fsnms_data$CARI_Classification, useNA = "ifany")
+
+########################################################################
+### Creates IPC Reference Table Equivalents
+########################################################################
+
+## Data Source: https://www.ipcinfo.org/fileadmin/user_upload/ipcinfo/manual/IPC_Technical_Manual_3_Final.pdf
+
+## creates variable of IPC equivalents per the IPC reference table
+fsnms_data %>% mutate(IPC_HDDS = case_when(as.numeric(HDDS) >= 5 & as.numeric(HDDS) <= 12 ~ "Phase 1 or 2", as.numeric(HDDS) >= 3 & as.numeric(HDDS) <= 4 ~ "Phase 3", as.numeric(HDDS) >= 0 & as.numeric(HDDS) <= 2 ~ "Phase 4 or 5"), IPC_FCS = case_when(FCS > 35 ~ "Phase 1 or 2", FCS > 21 & FCS <= 35 ~ "Phase 3",  FCS >= 0 & FCS <= 21 ~"Phase 4 or 5"), IPC_HHS = case_when(HHS == 0 ~ "Phase 1", HHS == 1 ~ "Phase 2", HHS >= 2 & HHS <= 3 ~ "Phase 3", HHS == 4 ~ "Phase 4", HHS >= 5 & HHS <= 6 ~ "Phase 5"), IPC_RCSI = case_when(rCSI >= 0 & rCSI <=3 ~ "Phase 1", rCSI >= 4 & rCSI <=18 ~ "Phase 2", rCSI >= 19 ~ "Phase 3, 4, or 5"), IPC_LCSI = case_when(LCSI_Classification == "No Coping" ~ "Phase 1", LCSI_Classification == "Stress Coping" ~ "Phase 2", LCSI_Classification == "Crises Coping" ~ "Phase 3", LCSI_Classification == "Emergency Coping" ~ "Phase 4 or 5")) -> fsnms_data
+
+# table(fsnms_data$IPC_HDDS, useNA = "ifany")
+# table(fsnms_data$IPC_FCS, useNA = "ifany")
+# table(fsnms_data$IPC_HHS, useNA = "ifany")
+# table(fsnms_data$IPC_RCSI, useNA = "ifany")
+# table(fsnms_data$IPC_LCSI, useNA = "ifany")
+
+########################################################################
+### Creates FEWNET Convergence Matrix Indicators
+########################################################################
+
+## Data Source: https://fews.net/sites/default/files/documents/reports/fews-net-matrix-guidance-document.pdf
+
+## Food Consumption Component
+fsnms_data %>% mutate(FEWS_FC_CELL = case_when(FCS > 35 & (rCSI >= 0 & rCSI < 4) & HHS == 0 ~ 1,
+                                          FCS > 35 & (rCSI >= 0 & rCSI < 4) & HHS == 1 ~ 2,
+                                          FCS > 35 & (rCSI >= 0 & rCSI < 4) & (HHS == 2 | HHS == 3) ~ 3,
+                                          FCS > 35 & (rCSI >= 0 & rCSI < 4) & (HHS == 4) ~ 4,
+                                          FCS > 35 & (rCSI >= 0 & rCSI < 4) & (HHS == 5 | HHS == 6) ~ 5,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 0 & rCSI < 4) & HHS == 0 ~ 6,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 0 & rCSI < 4) & HHS == 1 ~ 7,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 0 & rCSI < 4) & (HHS == 2 | HHS == 3) ~ 8,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 0 & rCSI < 4) & (HHS == 4) ~ 9,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 0 & rCSI < 4) & (HHS == 5 | HHS == 6) ~ 10,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 0 & rCSI < 4) & HHS == 0 ~ 11,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 0 & rCSI < 4) & HHS == 1 ~ 12,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 0 & rCSI < 4) & (HHS == 2 | HHS == 3) ~ 13,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 0 & rCSI < 4) & (HHS == 4) ~ 14,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 0 & rCSI < 4) & (HHS == 5 | HHS == 6) ~ 15,
+                                          FCS > 35 & (rCSI >= 4 & rCSI <= 18) & HHS == 0 ~ 16,
+                                          FCS > 35 & (rCSI >= 4 & rCSI <= 18) & HHS == 1 ~ 17,
+                                          FCS > 35 & (rCSI >= 4 & rCSI <= 18) & (HHS == 2 | HHS == 3) ~ 18,
+                                          FCS > 35 & (rCSI >= 4 & rCSI <= 18) & (HHS == 4) ~ 19,
+                                          FCS > 35 & (rCSI >= 4 & rCSI <= 18) & (HHS == 5 | HHS == 6) ~ 20,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 4 & rCSI <= 18) & HHS == 0 ~ 21,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 4 & rCSI <= 18) & HHS == 1 ~ 22,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 4 & rCSI <= 18) & (HHS == 2 | HHS == 3) ~ 23,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 4 & rCSI <= 18) & (HHS == 4) ~ 24,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI >= 4 & rCSI <= 18) & (HHS == 5 | HHS == 6) ~ 25,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 4 & rCSI <= 18) & HHS == 0 ~ 26,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 4 & rCSI <= 18) & HHS == 1 ~ 27,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 4 & rCSI <= 18) & (HHS == 2 | HHS == 3) ~ 28,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 4 & rCSI <= 18) & (HHS == 4) ~ 29,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI >= 4 & rCSI <= 18) & (HHS == 5 | HHS == 6) ~ 30,
+                                          FCS > 35 & (rCSI > 18) & HHS == 0 ~ 31,
+                                          FCS > 35 & (rCSI > 18) & HHS == 1 ~ 32,
+                                          FCS > 35 & (rCSI > 18) & (HHS == 2 | HHS == 3) ~ 33,
+                                          FCS > 35 & (rCSI > 18) & (HHS == 4) ~ 34,
+                                          FCS > 35 & (rCSI > 18) & (HHS == 5 | HHS == 6) ~ 35,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI > 18) & HHS == 0 ~ 36,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI > 18) & HHS == 1 ~ 37,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI > 18) & (HHS == 2 | HHS == 3) ~ 38,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI > 18) & (HHS == 4) ~ 39,
+                                          (FCS >= 21.5 &  FCS <= 35) & (rCSI > 18) & (HHS == 5 | HHS == 6) ~ 40,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI > 18) & HHS == 0 ~ 41,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI > 18) & HHS == 1 ~ 42,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI > 18) & (HHS == 2 | HHS == 3) ~ 43,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI > 18) & (HHS == 4) ~ 44,
+                                          (FCS > 0 & FCS < 21.5) & (rCSI > 18) & (HHS == 5 | HHS == 6) ~ 45)) -> fsnms_data
+
+
+fsnms_data %>% mutate(FEWS_FC_PHASE = case_when(FEWS_FC_CELL == 1 | FEWS_FC_CELL == 6 ~ 1, 
+                                                FEWS_FC_CELL == 2 | FEWS_FC_CELL == 3 | FEWS_FC_CELL == 7 | FEWS_FC_CELL == 11 | FEWS_FC_CELL == 12 | FEWS_FC_CELL == 16  | FEWS_FC_CELL == 17 | FEWS_FC_CELL == 18 | FEWS_FC_CELL == 21 | FEWS_FC_CELL == 22 | FEWS_FC_CELL == 26 | FEWS_FC_CELL == 31 | FEWS_FC_CELL == 32 | FEWS_FC_CELL == 36  ~ 2, 
+                                                FEWS_FC_CELL == 4 | FEWS_FC_CELL == 5 | FEWS_FC_CELL == 8 | FEWS_FC_CELL == 9 | FEWS_FC_CELL == 13 | FEWS_FC_CELL == 19  | FEWS_FC_CELL == 20 | FEWS_FC_CELL == 23 | FEWS_FC_CELL == 24 | FEWS_FC_CELL == 27 | FEWS_FC_CELL == 28 | FEWS_FC_CELL == 33 | FEWS_FC_CELL == 34 | FEWS_FC_CELL == 37 | FEWS_FC_CELL == 38 | FEWS_FC_CELL == 41 | FEWS_FC_CELL == 42 | FEWS_FC_CELL == 43  ~ 3, FEWS_FC_CELL == 10 | FEWS_FC_CELL == 14 | FEWS_FC_CELL == 15 | FEWS_FC_CELL == 25 | FEWS_FC_CELL == 29 | FEWS_FC_CELL == 35  | FEWS_FC_CELL == 39 | FEWS_FC_CELL == 40 | FEWS_FC_CELL == 44 ~ 4, FEWS_FC_CELL == 30 | FEWS_FC_CELL == 45 ~ 5)) -> fsnms_data
+
+## Livelihoods Component
+fsnms_data %>% mutate(FEWS_FCLC_CELL = case_when(FEWS_FC_PHASE == 1 & LCSI_CARI == 1 ~ 1,
+                                                 FEWS_FC_PHASE == 2 & LCSI_CARI == 1 ~ 2,
+                                                 FEWS_FC_PHASE == 3 & LCSI_CARI == 1 ~ 3,
+                                                 FEWS_FC_PHASE == 4 & LCSI_CARI == 1 ~ 4,
+                                                 FEWS_FC_PHASE == 5 & LCSI_CARI == 1 ~ 5,
+                                                 FEWS_FC_PHASE == 1 & LCSI_CARI == 2 ~ 6,
+                                                 FEWS_FC_PHASE == 2 & LCSI_CARI == 2 ~ 7,
+                                                 FEWS_FC_PHASE == 3 & LCSI_CARI == 2 ~ 8,
+                                                 FEWS_FC_PHASE == 4 & LCSI_CARI == 2 ~ 9,
+                                                 FEWS_FC_PHASE == 5 & LCSI_CARI == 2 ~ 10,
+                                                 FEWS_FC_PHASE == 1 & LCSI_CARI == 3 ~ 11,
+                                                 FEWS_FC_PHASE == 2 & LCSI_CARI == 3 ~ 12,
+                                                 FEWS_FC_PHASE == 3 & LCSI_CARI == 3 ~ 13,
+                                                 FEWS_FC_PHASE == 4 & LCSI_CARI == 3 ~ 14,
+                                                 FEWS_FC_PHASE == 5 & LCSI_CARI == 3 ~ 15,
+                                                 FEWS_FC_PHASE == 1 & LCSI_CARI == 4 ~ 16,
+                                                 FEWS_FC_PHASE == 2 & LCSI_CARI == 4 ~ 17,
+                                                 FEWS_FC_PHASE == 3 & LCSI_CARI == 4 ~ 18,
+                                                 FEWS_FC_PHASE == 4 & LCSI_CARI == 4 ~ 19,
+                                                 FEWS_FC_PHASE == 5 & LCSI_CARI == 4 ~ 20)) -> fsnms_data
+
+
+
+fsnms_data %>% mutate(FEWS_FCLC_PHASE = case_when(FEWS_FCLC_CELL == 1 | FEWS_FCLC_CELL == 6 ~ 1, FEWS_FCLC_CELL == 2 | FEWS_FCLC_CELL == 7 | FEWS_FCLC_CELL == 11 ~ 2, FEWS_FCLC_CELL == 3 | FEWS_FCLC_CELL == 8 | FEWS_FCLC_CELL == 12 | FEWS_FCLC_CELL == 13 | FEWS_FCLC_CELL == 16 | FEWS_FCLC_CELL == 17 ~ 3, FEWS_FCLC_CELL == 4 | FEWS_FCLC_CELL == 9 | FEWS_FCLC_CELL == 14 | FEWS_FCLC_CELL == 18 | FEWS_FCLC_CELL == 19 ~ 4, FEWS_FCLC_CELL == 5 | FEWS_FCLC_CELL == 10 | FEWS_FCLC_CELL == 15 | FEWS_FCLC_CELL == 20 ~ 5)) -> fsnms_data
+
+# table(fsnms_data$FEWS_FC_CELL, useNA = "ifany")
+# table(fsnms_data$FEWS_FC_PHASE, useNA = "ifany")
+# table(fsnms_data$FEWS_FCLC_CELL, useNA = "ifany")
+# table(fsnms_data$FEWS_FCLC_PHASE, useNA = "ifany")
+
+```
+
+# Food Security Statistics
+
+## Food Consumption Score (FCS)
+
+```{r section_fcs}
+
+fsnms_data %>% select(interview.section_a.A05, FCSStap:FCSCond, FCS, FCS_Classification) %>% tbl_summary(by = interview.section_a.A05, missing = "no", statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall()
+
+```
+
+## Food Consumption Score Nutrition (FCS - N) 
+
+```{r section_fcsn}
+
+fsnms_data %>% select(interview.section_a.A05, FCSN_PROTEIN_CLASSIFICATION, FCSN_HEMIRON_CLASSIFICATION, FCSN_VITAMINA_CLASSIFICATION) %>% tbl_summary(by = interview.section_a.A05, statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall() 
+
+```
+
+## Consumption-Based Coping Strategy Index (rCSI)
+
+```{r section_rcsi}
+
+fsnms_data %>% select(interview.section_a.A05, rCSILessQlty_yn:rCSIMealAdult_yn, rCSI, rCSI_Classification) %>% tbl_summary(by = interview.section_a.A05, statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall()
+
+```
+
+## Livelihoods-Based Coping Strategy Index (LCSI)
+
+```{r section_lcsi}
+
+fsnms_data %>% select(interview.section_a.A05, LCSI_Stress:LCSI_Emergency, LCSI_Classification) %>% tbl_summary(by = interview.section_a.A05, statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall() 
+
+```
+
+## Food Expenditure Share (FES)
+
+```{r section_fes}
+
+fsnms_data %>% select(interview.section_a.A05, HHExpFood_MN_1M,HHExpFood_CRD_1M, HHExpFood_GiftAid_1M, HHExpFood_Own_1M, HHExpFood_1M, HHExpNFTotal_1M, HHExpNFIntermediate_1M, HHExpNFWealth_1M, HHExpTotal_1M, PCExpFood_1M, PCExpNFTotal_1M, PCExpNFIntermediate_1M, PCExpNFWealth_1M, PCExpTotal_1M, FES, FES_Classification) %>% tbl_summary(by = interview.section_a.A05, statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall()
+
+```
+
+## Household Dietary Diversity Score (HDDS)
+
+```{r section_hdds}
+
+fsnms_data %>% select(interview.section_a.A05, HDDS_Cereals:HDDS_Condiments, HDDS, HDDS_Classification) %>% tbl_summary(by = interview.section_a.A05, missing = "no", statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall() 
+
+```
+
+## Household Hunger Scale (HHS)
+
+```{r section_hhs}
+
+fsnms_data %>% select(interview.section_a.A05, HHS_Classification) %>% tbl_summary(by = interview.section_a.A05, missing = "no", statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall() 
+
+```
+
+## Consolidated Approach for Reporting Indicators of Food Security (CARI)
+
+```{r section_cari} 
+
+fsnms_data %>% select(interview.section_a.A05, CARI, CARI_Classification) %>% tbl_summary(by = interview.section_a.A05, statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall() 
+
+```
+
+## FEWS Converagence Matrix
+
+```{r section_fews_matrix}
+
+fsnms_data %>% select(interview.section_a.A05, FEWS_FC_CELL, FEWS_FC_PHASE, FEWS_FCLC_CELL, FEWS_FCLC_PHASE) %>% tbl_summary(by = interview.section_a.A05, missing = "no", statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%")) %>% add_overall()
+
+```
+
+# IPC Output Tables
+
+```{r summary_table_data_export}
+
+## exports key IPC indicators including:
+## FCS - Score [FCS]
+## FCS - Classification [FCS_Classification]
+## FCS - IPC Classification [IPC_FCS]
+## HDDS - Score [HDDS]
+## HDDS - Classification [HDDS_Classification]
+## rCSI - Score [rCSI]
+## rCSI - Classification [rCSI_Classification]
+## rCSI - IPC Classification [IPC_RCSI]
+## rCSI - Strategies
+## LCSI - Classification [rCSI_Classification]
+## LCSI - IPC Classification [IPC_LCSI]
+## LCSI - Strategies
+## HHS - Score [HHS]
+## HHS - Classification [HHS_Classification]
+## HHS - IPC Classification [IPC_HHS]
+## Extra Indicators - CARI
+## Extras Indicators - FES
+## Extras Indicators - FCSN
+
+## creates a summary table for export and groups by state
+fsnms_data %>% select(interview.section_a.A04, interview.section_a.A05, FCSStap:FCSCond, FCS, FCS_Classification, IPC_FCS, rCSILessQlty_yn:rCSIMealAdult_yn, rCSI, rCSI_Classification, IPC_RCSI, interview.section_n.section_n_lcsi.N08:interview.section_n.section_n_lcsi.N17, LCSI_Classification, IPC_LCSI, HDDS_Cereals:HDDS_Condiments, HDDS, HDDS_Classification, IPC_HDDS, HHS_Q1_yn:HHS_Q3_yn, HHS_Q1_freq:HHS_Q3_freq, HHS, HHS_Classification, IPC_HHS, CARI_Classification, FCSN_VITAMINA_CLASSIFICATION, FCSN_PROTEIN_CLASSIFICATION, FCSN_HEMIRON_CLASSIFICATION, FES_Classification, FEWS_FCLC_PHASE) %>% tbl_strata(
+    strata = interview.section_a.A04,
+    ~.x %>%
+      tbl_summary(type = c(HHS = "continuous", FCSStap = "continuous", FCSPulse = "continuous", FCSDairy = "continuous", FCSPr = "continuous", FCSVeg = "continuous", FCSFruit = "continuous", FCSFat = "continuous", FCSSugar = "continuous", FCSCond = "continuous"), by = interview.section_a.A05, missing = "no", statistic = list(all_continuous() ~ "{mean}",
+                     all_categorical() ~ "{p}%"))) -> output_table
+
+output_table
+
+## creates a workbook for export
+OUT <- createWorkbook()
+
+## Add worksheets to the workbook
+addWorksheet(OUT, "county_summary_table")
+
+## write the summary table to the worksheets
+writeData(OUT, sheet = "county_summary_table", x = output_table$table_body)
+
+## export the workbook to a file
+saveWorkbook(OUT, "./Data Output/ipc_summary_table_data_20221021.xlsx", overwrite = TRUE)
+
+```
+
+# IPC Geospatial Vizualizations
+
+```{r chloropleth_maps}
+
+fsnms_data %>% group_by(interview.section_a.A05) %>% summarise(., FEWS_FC_CELL_AVERAGE = mean(FEWS_FC_CELL, na.rm = TRUE), FEWS_FC_PHASE_AVERAGE = mean(FEWS_FC_PHASE, na.rm = TRUE), FEWS_FCLC_CELL_AVERAGE = mean(FEWS_FCLC_CELL, na.rm = TRUE), FEWS_FCLC_PHASE_AVERAGE = mean(FEWS_FCLC_PHASE, na.rm = TRUE), HDDS_AVERAGE = mean(HDDS), HHS_AVERAGE = mean(HHS), FCS_AVERAGE = mean(FCS), FCS_STAPLE_AVERAGE = mean(FCSStap), FCS_DAIRY_AVERAGE = mean(FCSDairy), FCS_MEAT_AVERAGE = mean(FCSPr), FCS_FRUIT_AVERAGE = mean(FCSFruit), FCS_VEGETABLE_AVERAGE = mean(FCSVeg), FCS_PULSE_AVERAGE = mean(FCSPulse), FCS_FAT_AVERAGE = mean(FCSFat), FCS_SUGAR_AVERAGE = mean(FCSSugar), FCS_CONDIMENT_AVERAGE = mean(FCSCond), FCS_POOR = count(FCS_Classification == "Poor")/n(), FCS_POORBORDERLINE = count(FCS_Classification == "Poor" | FCS_Classification == "Baseline")/n(), CARI_SEVERE = count(CARI_Classification == "Severely Food Insecure")/n(), CARI_SEVEREMODERATE = count(CARI_Classification == "Severely Food Insecure" | CARI_Classification == "Moderately Food Insecure")/n(), rCSI_AVERAGE = mean(rCSI), LCSI_EMERGENCY = count(LCSI_Classification == "Emergency Coping")/n(), LCSI_EMERGENCYCRISES = count(LCSI_Classification == "Emergency Coping" | LCSI_Classification == "Crises Coping")/n(), RCSI_HIGH = count(rCSI_Classification == "rCSI - 19+")/n(), PC_FOOD_EXP_AVERAGE = median(PCExpFood_1M),PC_TOTAL_EXP_AVERAGE = median(PCExpTotal_1M), MARKET_ACCESS_RATE = count(interview.section_l.L09 == "Yes")/n(), MARKET_ACCESS_TIME_RATE = count(interview.section_l.L07 == "Under 30 minutes")/n()) %>% mutate(FSNMS_ID = interview.section_a.A05) -> fsnms_shape_prep
+
+# joins the shapefile with the fsnms data 
+fsnms_sf_merged <- ss_county_shapefile %>% left_join(., fsnms_shape_prep , by = "FSNMS_ID") 
+
+# creates mapping function
+chloropleth_map_blue <- function(x, y, z) {
+  
+  ggplot(x) + geom_sf(aes(fill = {{y}})) + scale_fill_gradient(low = "#C2DBEF",
+  high = "#1A4161",
+  space = "Lab",
+  na.value = "lightgrey",
+  guide = "colourbar",
+  aesthetics = "fill") + labs(fill = z ) + theme_void()
+  
+}
+
+chloropleth_map_red <- function(x, y, z) {
+  
+  ggplot(x) + geom_sf(aes(fill = {{y}})) + scale_fill_gradient(low = "white",
+  high = "#C00000",
+  space = "Lab",
+  na.value = "lightgrey",
+  guide = "colourbar",
+  aesthetics = "fill") + labs(fill = z ) + theme_void()
+  
+}
+
+## household hunger scale chloropleth map
+chloropleth_map_red(fsnms_sf_merged, HHS_AVERAGE, "Household Hunger Scale Score")
+
+## dietary diversity chloropleth map
+chloropleth_map_blue(fsnms_sf_merged, HDDS_AVERAGE, "Household Dietary Diversity Score")
+
+## food consumption chloropleth map
+chloropleth_map_blue(fsnms_sf_merged, FCS_STAPLE_AVERAGE, "Household FCS Score - Staples")
+chloropleth_map_blue(fsnms_sf_merged, FCS_DAIRY_AVERAGE, "Household FCS Score - Dairy")
+chloropleth_map_blue(fsnms_sf_merged, FCS_PULSE_AVERAGE, "Household FCS Score - Pulses")
+chloropleth_map_blue(fsnms_sf_merged, FCS_MEAT_AVERAGE, "Household FCS Score - Meat")
+chloropleth_map_blue(fsnms_sf_merged, FCS_FRUIT_AVERAGE, "Household FCS Score - Fruit")
+chloropleth_map_blue(fsnms_sf_merged, FCS_VEGETABLE_AVERAGE, "Household FCS Score - Vegetable")
+chloropleth_map_blue(fsnms_sf_merged, FCS_SUGAR_AVERAGE, "Household FCS Score - Sugar")
+chloropleth_map_blue(fsnms_sf_merged, FCS_FAT_AVERAGE, "Household FCS Score - Fat")
+chloropleth_map_blue(fsnms_sf_merged, FCS_CONDIMENT_AVERAGE, "Household FCS Score - Condiments")
+chloropleth_map_red(fsnms_sf_merged, FCS_AVERAGE , "Household FCS Score")
+chloropleth_map_red(fsnms_sf_merged, FCS_POORBORDERLINE , "Household with Poor or Borderline FCS")
+chloropleth_map_red(fsnms_sf_merged, FCS_POOR , "Household with Poor FCS")
+
+# livelihoods coping strategies chloropleth map
+chloropleth_map_red(fsnms_sf_merged, LCSI_EMERGENCY , "Household with Emergency LCSI")
+chloropleth_map_red(fsnms_sf_merged, LCSI_EMERGENCYCRISES , "Household with Emergency or Crises LCSI")
+
+# consumption coping strategies chloropleth map
+chloropleth_map_red(fsnms_sf_merged, RCSI_HIGH , "Household with High rCSI")
+chloropleth_map_red(fsnms_sf_merged, rCSI_AVERAGE, "Household rCSI Score")
+
+## expenditure chloropleth map
+chloropleth_map_red(fsnms_sf_merged, PC_FOOD_EXP_AVERAGE, "Median Household Per Capita Food Expenditure")
+chloropleth_map_red(fsnms_sf_merged, PC_TOTAL_EXP_AVERAGE, "Median Household Per Capita Total Expenditure")
+
+## fews matrix chloropleth map
+chloropleth_map_red(fsnms_sf_merged, FEWS_FC_CELL_AVERAGE, "FEWS Matrix - FC Cell")
+chloropleth_map_red(fsnms_sf_merged, FEWS_FC_PHASE_AVERAGE, "FEWS Matrix - FC Phase")
+chloropleth_map_red(fsnms_sf_merged, FEWS_FCLC_CELL_AVERAGE, "FEWS Matrix - FCLC Cell")
+chloropleth_map_red(fsnms_sf_merged, FEWS_FCLC_PHASE_AVERAGE, "FEWS Matrix - FCLC Phase")
+
+```
+
