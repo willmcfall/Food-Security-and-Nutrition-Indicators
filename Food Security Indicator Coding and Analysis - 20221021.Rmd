@@ -363,11 +363,11 @@ fsnms_data %>% mutate(FCSN_VITAMINA_CLASSIFICATION = case_when(FCSN_VITAMINA == 
 ## Source Document:https://newgo.wfp.org/services/wfp-indicator-compendium-2022-2025
 
 # creates rCSI component indicators 
-fsnms_data %>% mutate(rCSILessQlty = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N01),
-                      rCSIBorrow = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N05),
-                      rCSIMealNb = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N04),
-                      rCSIMealSize = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N02),
-                      rCSIMealAdult = as.numeric(fsnms_data$interview.section_n.section_n_rcsi.N03)) -> fsnms_data
+fsnms_data %>% mutate(rCSILessQlty = as.numeric(interview.section_n.section_n_rcsi.N01),
+                      rCSIBorrow = as.numeric(interview.section_n.section_n_rcsi.N05),
+                      rCSIMealNb = as.numeric(interview.section_n.section_n_rcsi.N04),
+                      rCSIMealSize = as.numeric(interview.section_n.section_n_rcsi.N02),
+                      rCSIMealAdult = as.numeric(interview.section_n.section_n_rcsi.N03)) -> fsnms_data
 
 # checks rCSI component indicator validity
 fsnms_data %>% mutate(rCSILessQlty  = ifelse(rCSILessQlty  >= 0 & rCSILessQlty <= 7, rCSILessQlty, NA),
