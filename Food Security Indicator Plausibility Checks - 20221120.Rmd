@@ -1,0 +1,123 @@
+---
+title: "Food Security Indicator Plausbility Checks"
+author: "William Mcfall - WFP South Sudan RAM Officer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: espresso
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+    number_sections: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+---
+
+
+```{r script_setup, include=FALSE, fig.align = "center", fig.width= 16, fig.height= 11, fig.asp= 0.618, out.width="100%"}
+
+############
+### Removes Objects in Memory
+############
+
+rm(list = ls())
+
+############
+### Establishes Default Settings for Knitr
+############
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	cache.path = "cache/html/" # set to ensure that cache directory functions properly... change path if output type changes
+)
+
+knitr::opts_knit$set(root.dir = 'XXX') 
+
+############
+### Establishes the FSNMS Project Working Directory
+############
+
+setwd('XXX')
+
+############
+### Loads the Required Libraries
+############
+
+library(gtsummary)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(mosaic)
+library(tidyverse)
+library(modelsummary)
+library(kableExtra) 
+library(foreign)
+library(arsenal)
+library(desctable)
+library(survey)
+library(srvyr) 
+library(naniar)
+library(rmarkdown)
+library(haven)
+library(labelled)
+library(sjlabelled)
+# library(xlsx)
+library(rlang)
+library(digitTests)
+library(skimr)
+library(ggrepel)
+library(janitor)
+library(skimr)
+library(skimr)
+library(ggmap)
+library(RM.weights)
+library("gt")
+library("stringr")
+library(sf)
+library(rgdal)
+library(FRK)
+
+
+```
+
+```{r data_import}
+
+########################################################################
+### Establishes the FSNMS Local File Path
+########################################################################
+
+file_path <- "./Data Input/cleaned_raw_data.xlsx"
+
+########################################################################
+### Creates Household-Level Food Security Dataset
+########################################################################
+
+## imports household-level food security dataset
+fsnms_data <- read_xlsx(file_path, sheet="data")
+
+########################################################################
+### Creates Error Flag Variables Based on Plausibility Assumptions
+########################################################################
+
+# calculates standard deviation and mean food expenditure
+sd_food_exp <- sd(fsnms_data$HHExpFood_1M)
+mean_food_exp <- mean(fsnms_data$HHExpFood_1M)
+
+## creates error flag variables indicating if the data collection was fast, slow, or negative; rCSI was high; FCS was zero, low, or high; food expenditure was zero, low, or high
+fsnms_data %>% mutate(errorflag_duration_fast = ifelse(duration_minutes <= 30 & duration_minutes >= 0, 1,0),
+                      errorflag_duration_slow = ifelse(duration_minutes > 180, 1, 0),
+                      errorflag_duration_negative = ifelse(duration_minutes < 0, 1, 0),
+                      errorflag_rcsi_high = ifelse(rCSI >= 45, 1, 0),
+                      errorflag_fcs_zero = ifelse(FCS == 0, 1, 0),
+                      errorflag_fcs_low = ifelse(FCS < 10, 1, 0),
+                      errorflag_fcs_high = ifelse(FCS > 100, 1, 0),
+                      errorflag_fcs_staple_zero = ifelse(FCSStap == 0, 1, 0),
+                      errorflag_food_exp_high = ifelse(HHExpFood_1M >= (mean_food_exp + 2*sd_food_exp), 1,0),
+                      errorflag_food_exp_low = ifelse(HHExpFood_1M <= (mean_food_exp - 2*sd_food_exp), 1,0),
+                      errorflag_food_exp_zero = ifelse(HHExpFood_1M == 0, 1,0)) -> fsnms_data
