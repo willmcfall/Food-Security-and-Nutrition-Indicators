@@ -11,6 +11,10 @@
     - source: https://inddex.nutrition.tufts.edu/data4diets/indicator/household-food-expenditure-share
 -	HHS Score, HHS Classification 
     - source: https://www.fantaproject.org/sites/default/files/resources/HHS-Indicator-Guide-Aug2011.pdf
+-	HDDS Score, HDDS Classification 
+    - source: https://www.fao.org/3/i1983e/i1983e.pdf
+-	MDD-W Score, MDD-W Classification 
+    - source: https://www.fao.org/3/cb3434en/cb3434en.pdf
 -	FIES Score, FIES Classification
     - source: https://www.fao.org/in-action/voices-of-the-hungry/analyse-data/en/
 -	CARI Classification 
