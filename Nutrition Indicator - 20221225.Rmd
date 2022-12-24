@@ -1,0 +1,511 @@
+---
+title: "Nutrition Indicator Recoding"
+author: "William Mcfall - WFP South Sudan RAM Officer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: espresso
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: true
+      smooth_scroll: false 
+    number_sections: true
+    
+---
+
+
+```{r script_setup, include=FALSE, fig.align = "center", fig.width= 16, fig.height= 11, fig.asp= 0.618, out.width="100%"}
+
+############
+### Removes Objects in Memory
+############
+
+rm(list = ls())
+
+############
+### Establishes Default Settings for Knitr
+############
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	cache.path = "cache/html/"
+)
+
+knitr::opts_knit$set(root.dir = 'XXX') 
+
+############
+### Establishes the FSNMS Project Working Directory
+############
+
+setwd('XXX')
+
+############
+### Loads the Required Libraries
+############
+
+library(gtsummary)
+library(readxl)
+library(openxlsx)
+library(dplyr)
+library(tidyr)
+library(mosaic)
+library(tidyverse)
+library(modelsummary)
+library(kableExtra) 
+library(foreign)
+library(arsenal)
+library(desctable)
+library(survey)
+library(srvyr) 
+library(naniar)
+library(rmarkdown)
+library(haven)
+library(labelled)
+library(sjlabelled)
+# library(xlsx)
+library(rlang)
+library(digitTests)
+library(skimr)
+library(ggrepel)
+library(janitor)
+library(skimr)
+library(skimr)
+library(ggmap)
+library(RM.weights)
+library("gt")
+library("stringr")
+library(sf)
+library(rgdal)
+
+
+```
+
+```{r data_import}
+
+############
+### Establishes the FSNMS Local File Path
+############
+
+file_path <- "XXX"
+
+
+############
+### Creates Individual-Level
+### CU5 Anthropometric and Nutrition Data
+############
+
+## imports child nutrition dataset
+nutrition_data <- read_xlsx(file_path, sheet="interview_section_e_Section_N1")
+
+## data cleaning - change slash and dashes change to dots
+names(nutrition_data) <- gsub("interview/section_e/Section_N1/", "", names(nutrition_data))
+names(nutrition_data) <- gsub("/", ".", names(nutrition_data))
+names(nutrition_data) <- gsub("-", ".", names(nutrition_data))
+
+############
+### Creates Individual-Level 
+### Women Anthropometric and Nutrition Data
+############
+
+## imports women nutrition dataset
+women_nutrition_data <- read_xlsx(file_path, sheet="interview_section_f_repeat_q")
+
+## data cleaning - change slash and dashes change to dots
+sub("interview/section_f/repeat_q/", "", colnames(women_nutrition_data)) -> colnames(women_nutrition_data)
+sub("/", ".", colnames(women_nutrition_data)) -> colnames(women_nutrition_data)
+
+
+############
+### Creates Individual-Level 
+### PLW Women Anthropometric and Nutrition Data
+############
+
+# subset of nutrition data for pregnant and/or lactating women
+women_nutrition_data %>% filter(Q00 != "n/a") %>% filter(SectQ_anthropometry.Q02 == "Pregnant" | SectQ_anthropometry.Q02 == "Lactating" | SectQ_anthropometry.Q02 == "Pregnant and Lactating") -> plw_nutrition_data
+
+```
+
+## Morbidity, Vaccinations, and Supplements - CU5
+
+```{r section_vaccinations}
+
+############
+## Morbidity 
+############
+
+nutrition_data %>% mutate(diarrhea = `illness.Diarrhea (any episode of more than three liquid.like stools per day)`,
+                          cough = `illness.Diarrhea (any episode of more than three liquid.like stools per day)`,
+                          fever = `illness.Fever`) -> nutrition_data 
+
+nutrition_data %>% mutate(morbidity_diarrhea = case_when(diarrhea == FALSE ~ 0, diarrhea == TRUE ~ 1),
+                          morbidity_cough = case_when(cough == FALSE ~ 0, cough == TRUE ~ 1), 
+                          morbidity_fever = case_when(fever == FALSE ~ 0, fever == TRUE ~  1)) ->  nutrition_data
+
+
+############
+## Measles / Deworming / Vitamin A
+############
+
+nutrition_data %>% mutate(measles = `Group1.measles`,
+                          deworming = `Group1.deworming`,
+                          vitamin_a = `Group1.vitamin`) -> nutrition_data 
+
+nutrition_data %>% mutate(medication_measles = case_when(measles == "Yes, with vaccination card" ~ 1, measles == "Yes, without vaccination card (verbal narrative or mother's memory)" ~ 1, measles  == "No" ~ 0), 
+                          medication_deworming = case_when(deworming == "Yes" ~ 1, deworming == "No" ~ 0), 
+                          medication_vitamin_a = case_when(vitamin_a == "Yes" ~ 1, vitamin_a == "No" ~ 0)) -> nutrition_data
+
+```
+
+
+## IYCF CU5 - Breastfeeding
+
+```{r iycf_breastfeeding}
+
+
+# data recoding for nutrition
+nutrition_data %>% mutate(IYCF7.list.freq.solidsemi_8 = ifelse(IYCF7.list.freq.solidsemi_8 == 9, NA, IYCF7.list.freq.solidsemi_8),
+                          IYCF7.list.num_7a = ifelse(IYCF7.list.num_7a == 9, NA, IYCF7.list.num_7a),
+                          P03_N.number_6b = ifelse(P03_N.number_6b == 9, NA, P03_N.number_6b),
+                          P03_N.number_6c = ifelse(P03_N.number_6c == 9, NA, P03_N.number_6c),
+                          P03_N.number_6d = ifelse(P03_N.number_6d == 9, NA, P03_N.number_6d)) ->nutrition_data
+
+
+nutrition_data %>% mutate(age_months = J_childage, 
+                               iycf_1 = childeverBF_1, # ever breastfed (y.n)
+                               iycf_2 = childbirthBF_2, # how long after birth breastfed
+                               iycf_3 = introtoliq_3, # given anything to eat/drink in first 2 days after delivery
+                               iycf_4 = breastfed_4, # breastfed yesterday during the day or night (y/n)
+                               iycf_5 = Bottle_with_nipple_5, # drink anything from bottle with a nipple (y/n)
+                               iycf_6a = P03_N.water_6a, # plain water
+                               iycf_6b = P03_N.formula_6b, # infant formula (y/n)
+                               iycf_6b_num = P03_N.number_6b, # infant formula (number)
+                               iycf_6c = P03_N.milkanimal_6c, # milk from animals, fresh tinned powder (y/n)
+                               iycf_6c_num = P03_N.number_6c, # milk form animals, fresh, tinned, pwder (number)
+                               iycf_6c_swt = P03_N.swt_6c, # milk was sweetened (y/n)
+                               iycf_6d = P03_N.yoghurt_drinks_6d, # yoghurt drinks (y/n)
+                               iycf_6d_num = P03_N.number_6d, # yoghurt drinks (number)
+                               iycf_6d_swt = P03_N.swt_6d, # yoghurt drink was sweetened (y/n)
+                               iycf_6e = P03_N.chocolate_6e, # chocolate flavoured drinks, including from syrup / powders (y/n)
+                               iycf_6f = P03_N.fruitjuice_6f, # Fruit juice or fruit-flavoured drinks including those made from syrups or powders? (y/n)
+                               iycf_6g = P03_N.sodas_6g, # sodas, malt drinks, sports and energy drinks (y/n)
+                               iycf_6h = P03_N.teacoffee_6h, # tea, coffee, herbal drinks (y/n)
+                               iycf_6h_swt = P03_N.swt_6h, # tea coffee herbal drinks were sweetened (y/n) 
+                               iycf_6i = P03_N.brothsoup_6i, # clear broth / soup (y/n)
+                               iycf_6j = P03_N.otherliquid_6j, # other liquids (y/n)
+                               iycf_6j_swt = P03_N.swt_6j, # other drinks were sweetened (y/n)
+                               iycf_7a = IYCF7.list.yoghurt_7a, # yoghurt (NOT yoghurt drinks) (y/n)
+                               iycf_7a_num = IYCF7.list.num_7a, # yoghurt (NOT yoghurt drinks) (number)
+                               iycf_7b = IYCF7.list.porridge_7b, # porridge, bread, rice, nooodles (y/n)
+                               iycf_7c = IYCF7.list.pumpkin_7c, # vitamin a rich vegetables (pumpkin, carrots, sweet red peppers, squash or yellow/orange sweet potatoes) (y/n)
+                               iycf_7d = IYCF7.list.plantain_7d, # white starches (plaintains, white potatoes, white yams, manioc, cassava) (y/n) 
+                               iycf_7e = IYCF7.list.darkgreenveg_7e, # dark green leafy vegetables (y/n)
+                               iycf_7f = IYCF7.list.otherveg_7f, # other vegetables (y/n)
+                               iycf_7g = IYCF7.list.yellowfruit_7g, # vitamin a rich fruits (ripe mangoes, ripe papayas) (y/n)
+                               iycf_7h = IYCF7.list.otherfruit_7h, # other fruits (y/n)
+                               iycf_7i = IYCF7.list.organmeat_7i, # organ meats (liver ,kidney, heart) (y/n)
+                               iycf_7j = IYCF7.list.rpcessedmeat_7j, # processed meats (sausages, hot dogs, ham, bacon, salami, canned meat) (y/n)
+                               iycf_7k = IYCF7.list.othermeat_7k, # any other meats (beef, chicken, pork, goat, chicken, duck) (y/n)
+                               iycf_7l = IYCF7.list.eggs_7l, # eggs (y/n)
+                               iycf_7m = IYCF7.list.fish_7m, # fish (fresh or dried fish or shellfish) (y/n)
+                               iycf_7n = IYCF7.list.beanspeas_7n, # legumes (beans, peas, lentils, seeds, chickpeas) (y/n)
+                               iycf_7o = IYCF7.list.cheese_7o, # cheeses (hard or soft cheeses) (y/n)
+                               iycf_7p = IYCF7.list.sweets_7p, # sweets (chocolates, candies, pastries, cakes) (y.n)
+                               ###YS adding 7q to the argument
+                               iycf_7q = IYCF7.list.chipscrips_7q, # fried or empty carbs (chips, crisps, french fries, fried dough, instant noodles) (y/n)
+                               ###YS changing 7r to "any other solid, semi-solid or soft foods
+                               iycf_7r = IYCF7.list.thersolid_7r, # Any other solid, semi-solid, or soft foods
+                               ###YS removing 7r as fried or empty carbs.
+                               # iycf_7r = NULL, # fried or empty carbs (chips, crisps, french fries, fried dough, instant noodles) (y/n)
+                               iycf_7s = IYCF7.list.otherfoods_7s, # did child eat solid/semi-solid foods (y/n) for list based questionnaires
+                               iycf_8 = IYCF7.list.freq.solidsemi_8 # times child ate solid/semi-solid foods (number)
+) -> nutrition_data
+
+
+############
+## EvBF - Ever Breastfed - Relevant for children less than 24 months
+############
+
+nutrition_data %>% mutate(EvBF = case_when(iycf_1 == "Yes" & as.numeric(age_months) <= 23 ~ 1, iycf_1 == "No" & as.numeric(age_months) <= 23 ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$EvBF))
+
+############
+## EIBF - Early Initiation of Breastfeeding - Relevant for children less than 24 months
+############
+
+nutrition_data %>% mutate(EIBF = case_when(iycf_1 == "Yes" & iycf_2 == "Less than 1 hour" & as.numeric(age_months) <= 23 ~ 1, iycf_1 == "Yes" & iycf_2 == "Between 1 and 23 hours" & as.numeric(age_months) <= 23 ~ 0, iycf_1 == "Yes" & iycf_2 == "More than 24 hours" & as.numeric(age_months) <= 23 ~ 0, iycf_1 == "No" ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$EIBF))
+
+############
+## EBF2D - Exclusive Breastfeeding for the First Two Days After Birth
+############
+
+nutrition_data %>% mutate(EBF2D = case_when(childeverBF_1 == "Yes" & introtoliq_3 == "No" ~ 1, childeverBF_1 == "Yes" & introtoliq_3 == "Yes" ~ 0, childeverBF_1 == "No" ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$EBF2D))
+
+############
+## EBF - Exclusive Breastfeeding Under Six Months - Relevant for children less than 6 months
+############
+
+nutrition_data %>% mutate(EBF = case_when(iycf_4 == "Yes" & as.numeric(age_months) < 6 & iycf_6a == "No" & iycf_6b == "No" & iycf_6c == "No" & iycf_6d == "No" & iycf_6e == "No" & iycf_6f == "No" & iycf_6g == "No" & iycf_6h == "No" & iycf_6i == "No" & iycf_6j == "No" & iycf_7a == "No" & iycf_7b == "No" & iycf_7c == "No" & iycf_7d == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No" & iycf_7i == "No" & iycf_7j == "No" & iycf_7k== "No" & iycf_7l == "No" & iycf_7m == "No" & iycf_7n == "No" & iycf_7o == "No" & iycf_7p == "No" & iycf_7q == "No" & iycf_7r == "No" ~ 1, iycf_4 == "Yes" & as.numeric(age_months) < 6 & (iycf_6a == "Yes" | iycf_6b == "Yes" | iycf_6c == "Yes" | iycf_6d == "Yes" | iycf_6e == "Yes" | iycf_6f == "Yes" | iycf_6g == "Yes" | iycf_6h == "Yes" | iycf_6i == "Yes" | iycf_6j == "Yes" | iycf_7a == "Yes" | iycf_7b == "Yes" | iycf_7c == "Yes" | iycf_7d == "Yes" | iycf_7e == "Yes" | iycf_7f == "Yes" | iycf_7g == "Yes" | iycf_7h == "Yes" | iycf_7i == "Yes" | iycf_7j == "Yes" | iycf_7k== "Yes" | iycf_7l == "Yes" | iycf_7m == "Yes" | iycf_7n == "Yes" | iycf_7o == "Yes" | iycf_7p == "Yes" | iycf_7q == "Yes" | iycf_7r == "Yes") ~ 0, breastfed_4 == "No" & as.numeric(J_childage) < 6 ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$EBF))
+
+############
+## MixMF - Mixed Milk Feeding Under Six Months - Relevant for children less than 6 months.
+############
+
+nutrition_data %>% mutate(MixMF = case_when((iycf_4 == "Yes" & as.numeric(age_months) < 6) & (iycf_6b == "Yes" | iycf_6c == "Yes") ~ 1, (iycf_4 == "Yes" & as.numeric(age_months) < 6) & (iycf_6b == "No" & iycf_6c == "No") ~ 0, (iycf_4 == "No" & as.numeric(age_months) < 6) ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$MixMF))
+
+############
+## CBF - Continued Breastfeeding 12 - 23 Months - Relevant for children 12 - 23 months.
+############
+
+nutrition_data %>% mutate(CBF = case_when(iycf_4 == "Yes" & as.numeric(age_months) >= 12 & as.numeric(age_months) <= 23 ~ 1, iycf_4 == "No" & as.numeric(age_months) >= 12 & as.numeric(age_months) <= 23 ~ 0)) -> nutrition_data
+                                          
+# prop.table(table(nutrition_data$CBF))
+
+############
+# BoF - Bottle Feeding 0 - 23 Months - Relevant for children less than 24 months
+############
+
+nutrition_data %>% mutate(BoF = case_when(Bottle_with_nipple_5 == "Yes" & as.numeric(age_months) > 0 & as.numeric(age_months) <= 23 ~ 1, Bottle_with_nipple_5 == "No" & as.numeric(age_months) > 0 & as.numeric(age_months) <= 23 ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$BoF))
+
+############
+## Infant Feeding Area Graphs
+############
+
+nutrition_data %>% mutate(area_graph = case_when(iycf_4 == "Yes" & as.numeric(age_months) <= 23 & iycf_6a == "No" & iycf_6b == "No" & iycf_6c == "No" & iycf_6d == "No" & iycf_6e == "No" & iycf_6f == "No" & iycf_6g == "No" & iycf_6h == "No" & iycf_6i == "No" & iycf_6j == "No" & iycf_7a == "No" & iycf_7b == "No" & iycf_7c == "No" & iycf_7d == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No" & iycf_7i == "No" & iycf_7j == "No" & iycf_7k== "No" & iycf_7l == "No" & iycf_7m == "No" & iycf_7n == "No" & iycf_7o == "No" & iycf_7p == "No" & iycf_7q == "No" & iycf_7r == "No" ~ "Breast milk only", iycf_4 == "Yes" & as.numeric(age_months) <= 23 & (iycf_7a == "Yes" | iycf_7b == "Yes" | iycf_7c == "Yes" | iycf_7d == "Yes" | iycf_7e == "Yes" | iycf_7f == "Yes" | iycf_7g == "Yes" | iycf_7h == "Yes" | iycf_7i == "Yes" | iycf_7j == "Yes" | iycf_7k== "Yes" | iycf_7l == "Yes" | iycf_7m == "Yes" | iycf_7n == "Yes" | iycf_7o == "Yes" | iycf_7p == "Yes" | iycf_7q == "Yes" | iycf_7r == "Yes") ~ "Breast milk and solid, semi-solid, and soft foods", iycf_4 == "Yes" & (iycf_6b == "Yes" | iycf_6c == "Yes" | iycf_6d == "Yes") & as.numeric(age_months) <= 23 & (iycf_7a == "No" & iycf_7b == "No" & iycf_7c == "No" & iycf_7d == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No" & iycf_7i == "No" & iycf_7j == "No" & iycf_7k== "No" & iycf_7l == "No" & iycf_7m == "No" & iycf_7n == "No" & iycf_7o == "No" & iycf_7p == "No" & iycf_7q == "No" & iycf_7r == "No") ~ "Breast milk and animal and/or formula", iycf_4 == "Yes" & iycf_6a == "Yes" & (iycf_6e == "Yes" | iycf_6f == "Yes" | iycf_6g == "Yes" | iycf_6h == "Yes" | iycf_6i == "Yes" | iycf_6j == "Yes") & as.numeric(age_months) <= 23 & (iycf_7a == "No" & iycf_7b == "No" & iycf_7c == "No" & iycf_7d == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No" & iycf_7i == "No" & iycf_7j == "No" & iycf_7k== "No" & iycf_7l == "No" & iycf_7m == "No" & iycf_7n == "No" & iycf_7o == "No" & iycf_7p == "No" & iycf_7q == "No" & iycf_7r == "No") & (iycf_6b == "No" & iycf_6c == "No") ~ "Breast milk and non-milk liquids", iycf_4 == "Yes" & iycf_6a == "Yes" & as.numeric(age_months) <= 23 & (iycf_7a == "No" & iycf_7b == "No" & iycf_7c == "No" & iycf_7d == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No" & iycf_7i == "No" & iycf_7j == "No" & iycf_7k== "No" & iycf_7l == "No" & iycf_7m == "No" & iycf_7n == "No" & iycf_7o == "No" & iycf_7p == "No" & iycf_7q == "No" & iycf_7r == "No") & (iycf_6b == "No" & iycf_6c == "No") ~ "Breast milk and plain water", iycf_4 == "No" & as.numeric(age_months) <= 23 ~ "Not Breastfed")) -> nutrition_data
+
+# prop.table(table(nutrition_data$area_graph))
+
+############
+## Infant Feeding Area Graph - 0 to 6 months
+############
+
+type.convert(nutrition_data$age_months) -> nutrition_data$age_months_factor
+
+data_0to6 <- nutrition_data %>%
+  filter(as.numeric(age_months_factor) <= 6) %>%
+  filter(!is.na(area_graph)) %>%
+  group_by(age_months_factor, area_graph) %>%
+  summarise(n = n()) %>%
+  mutate(percentage = n / sum(n)) 
+
+ggplot(data_0to6, aes(x=age_months_factor, y=percentage, fill=fct_reorder(area_graph, percentage, .desc = FALSE))) + 
+    geom_area(alpha=0.5 , size=0.5, colour="white") 
+
+############
+## Infant Feeding Area Graph - 0 to 23 months
+############
+
+data_0to23 <- nutrition_data %>%
+  filter(as.numeric(age_months_factor) <= 23) %>%
+  filter(!is.na(area_graph)) %>%
+  group_by(age_months_factor, area_graph) %>%
+  summarise(n = n()) %>%
+  mutate(percentage = n / sum(n)) 
+
+ggplot(data_0to23, aes(x=age_months_factor, y=percentage, fill=fct_reorder(area_graph, percentage, .desc = FALSE))) + 
+    geom_area(alpha=0.5 , size=0.5, colour="white") 
+
+
+```
+
+
+## IYCF CU5 - Complementary Feeding
+
+```{r iycf_complementary}
+
+############
+## ISSSF - Introduction of Solid, Semi-Solid, or Soft Foods - Relevant for children 6 to 8 Months
+############
+
+nutrition_data %>% mutate(ISSSF = case_when((as.numeric(iycf_8) > 0 & as.numeric(iycf_8) <= 7) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 8) ~ 1, (iycf_7a == "Yes" | iycf_7b == "Yes" | iycf_7c == "Yes" | iycf_7d == "Yes" | iycf_7e == "Yes" | iycf_7f == "Yes" | iycf_7g == "Yes" | iycf_7h == "Yes" | iycf_7i == "Yes" | iycf_7j == "Yes" | iycf_7k== "Yes" | iycf_7l == "Yes" | iycf_7m == "Yes" | iycf_7n == "Yes" | iycf_7o == "Yes" | iycf_7p == "Yes" | iycf_7q == "Yes" | iycf_7r == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 8) ~ 1, as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 8 ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$ISSSF))
+
+#############
+## MDD - Minimum Dietary Diversity 6 - 23 Months - Relevant for Children 6 to 23 Months
+## 1. Breastmilk
+## 2. Grains, Roots, Tubers, Plantains
+## 3. Pulses (Beans, Peas, Lentils), Nuts, and Seeds
+## 4. Dairy Products (Milk, Formula, Yoghurt, Cheese)
+## 5. Flesh Foods (Meat, Fish, Poultry, Organ meats)
+## 6. Eggs
+## 7. Vitamin-A Rich Fruits and Vegetables
+## 8. Other Fruits and Vegetables
+##############
+
+## breastmilk reclassification
+nutrition_data %>% mutate(MDD_breastmilk = case_when(iycf_4 == "No" & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, iycf_4 == "Yes"& (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## grains, roots, tubers, plantains reclassification
+nutrition_data %>% mutate(MDD_grains = case_when((iycf_7b == "No" & iycf_7d == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7b == "Yes" | iycf_7d == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## pulses reclassification
+nutrition_data %>% mutate(MDD_pulses = case_when((iycf_7n == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7n == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## dairy reclassification
+nutrition_data %>% mutate(MDD_dairy = case_when((iycf_7a == "No" & iycf_7o == "No" & iycf_6b == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7a == "Yes" | iycf_7o == "Yes" | iycf_6b == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## flesh foods reclassification
+nutrition_data %>% mutate(MDD_flesh = case_when((iycf_7i == "No" & iycf_7j == "No" & iycf_7k == "No" & iycf_7m == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7i == "Yes" | iycf_7j == "Yes" | iycf_7k == "Yes" | iycf_7m == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## eggs reclassification
+nutrition_data %>% mutate(MDD_eggs = case_when((iycf_7l == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7l == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## vitamin a rich fruits and vegetables reclassification
+nutrition_data %>% mutate(MDD_vitaminafruitsvegetables = case_when((iycf_7c == "No" & iycf_7e == "No" & iycf_7g == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7c == "Yes" | iycf_7e == "Yes" | iycf_7g == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## other fruits and vegetables reclassification
+nutrition_data %>% mutate(MDD_otherfruitsvegetables = case_when((iycf_7h == "No" & iycf_7f == "No") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 0, (iycf_7h == "Yes" | iycf_7f == "Yes") & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) ~ 1)) -> nutrition_data
+
+## calculation of MDD Score
+nutrition_data %>% mutate(MDD_Score = as.numeric(MDD_breastmilk) + as.numeric(MDD_grains) + as.numeric(MDD_pulses) + as.numeric(MDD_dairy) + as.numeric(MDD_flesh) + as.numeric(MDD_eggs) + as.numeric(MDD_vitaminafruitsvegetables) + as.numeric(MDD_otherfruitsvegetables)) -> nutrition_data
+
+## classification of MDD Score
+nutrition_data %>% mutate(MDD = case_when(MDD_Score > 4 ~ 1, MDD_Score <= 4 ~ 0)) -> nutrition_data
+
+
+# table(nutrition_data$MDD_breastmilk)
+# table(nutrition_data$MDD_grains)
+# table(nutrition_data$MDD_pulses)
+# table(nutrition_data$MDD_dairy)
+# table(nutrition_data$MDD_flesh)
+# table(nutrition_data$MDD_eggs)
+# table(nutrition_data$MDD_vitaminafruitsvegetables)
+# table(nutrition_data$MDD_otherfruitsvegetables)
+# table(nutrition_data$MDD)
+
+################
+## MMF - Minimum Meal Frequency 6 - 23 Months
+################
+
+nutrition_data %>% mutate(MMF = case_when((as.numeric(iycf_8) >= 2) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 8) & (iycf_4 == "Yes") ~ 1, (as.numeric(iycf_8) < 2) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 8) & (iycf_4 == "Yes") ~ 0, (as.numeric(iycf_8) >= 3) & (as.numeric(J_childage) >= 9 & as.numeric(J_childage) <= 23) & (iycf_4 == "Yes") ~ 1, (as.numeric(iycf_8) < 3) & (as.numeric(J_childage) >= 9 & as.numeric(J_childage) <= 23) & (iycf_4 == "Yes") ~ 0, (as.numeric(iycf_8) >= 4) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No") ~ 1, (as.numeric(iycf_8) < 4) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No") ~ 0)) -> nutrition_data
+
+# table(nutrition_data$MMF)
+
+################
+## Minimum Milk Feeding Frequency for Non-Breastfed Children 6 - 23 Months
+################
+
+nutrition_data %>% mutate(iycf_6b_num = ifelse(is.na(iycf_6b_num), 0, iycf_6b_num),
+                          iycf_6c_num = ifelse(is.na(iycf_6c_num), 0, iycf_6c_num),
+                          iycf_6d_num = ifelse(is.na(iycf_6d_num), 0, iycf_6d_num)) -> nutrition_data
+
+nutrition_data %>% mutate(milk_feeds = as.numeric(iycf_6b_num) + as.numeric(iycf_6c_num) + 
+                             as.numeric(iycf_6d_num)) -> nutrition_data
+
+nutrition_data %>% mutate(MMFF = case_when((as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No") ~ 0, (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No" & milk_feeds >= 2) ~ 1)) -> nutrition_data
+
+# table(nutrition_data$milk_feeds)
+# table(nutrition_data$MMFF)
+
+################
+## MAD - Minimum Acceptable Diet 6 - 23 Months
+################
+
+nutrition_data %>% mutate(MAD = case_when((MMF == 1 & MDD == 1) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "Yes") ~ 1, (MMF == 0 | MDD == 0) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "Yes") ~ 0, (MMF == 1 & MDD == 1) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No") & (milk_feeds >= 2) ~ 1, (MMF == 1 & MDD == 1) & (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_4 == "No") & (milk_feeds < 2) ~ 0)) -> nutrition_data
+
+# table(nutrition_data$MMF)
+# table(nutrition_data$MDD)
+# table(nutrition_data$MAD)
+
+################
+## EFF - Egg or Flesh Food Consumption 6 - 23 Months
+################
+
+nutrition_data %>% mutate(EFF = case_when((as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7i == "Yes" | iycf_7j == "Yes" | iycf_7k == "Yes" | iycf_7l == "Yes" | iycf_7m == "Yes") ~ 1, (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7i == "No" & iycf_7j == "No" & iycf_7k == "No" & iycf_7l == "No" & iycf_7m == "No") ~ 0)) -> nutrition_data
+
+# table(nutrition_data$EFF)
+
+################
+## SwB - Sweet Beverage Consumption 6 - 23 Months
+################
+
+nutrition_data %>% mutate(SwB = case_when((as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_6c_swt == "Yes" | iycf_6d_swt == "Yes" | iycf_6e == "Yes" | iycf_6f == "Yes" | iycf_6g == "Yes" | iycf_6h_swt == "Yes" | iycf_6j_swt == "Yes") ~ 1, (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_6c_swt == "No" & iycf_6d_swt == "No" & iycf_6e == "No" & iycf_6f == "No" & iycf_6g == "No" & iycf_6h_swt == "No" & iycf_6j_swt == "No") ~ 0)) -> nutrition_data
+
+# table(nutrition_data$iycf_6c_swt)
+# table(nutrition_data$iycf_6d_swt)
+# table(nutrition_data$iycf_6e)
+# table(nutrition_data$iycf_6f)
+# table(nutrition_data$iycf_6g)
+# table(nutrition_data$iycf_6h_swt)
+# table(nutrition_data$iycf_6j_swt)
+# table(nutrition_data$SwB)
+
+################
+# Unhealthy Food Consumption (UFC) - Relevant for children 6 to 23 Months
+################
+
+nutrition_data %>% mutate(UFC = case_when((as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7p == "Yes" | iycf_7q == "Yes") ~ 1,(as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7p == "No" & iycf_7q == "No") ~ 0)) -> nutrition_data
+
+# table(nutrition_data$UFC)
+
+################
+# Zero Vegetable or Fruit Conusmption (ZVF) - Relevant for children 6 to 23 Months
+################
+
+nutrition_data %>% mutate(ZVF = case_when((as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7c == "No" & iycf_7e == "No" & iycf_7f == "No" & iycf_7g == "No" & iycf_7h == "No") ~ 1, (as.numeric(J_childage) >= 6 & as.numeric(J_childage) <= 23) & (iycf_7c == "Yes" | iycf_7e == "Yes" | iycf_7f == "Yes" | iycf_7g == "Yes" | iycf_7h == "Yes") ~ 0)) -> nutrition_data
+
+# table(nutrition_data$ZVF)
+
+```
+
+
+## MAM - CU5
+
+```{r section_mam_cu5}
+
+nutrition_data %>% mutate(MAM_MUAC = case_when((as.numeric(N13N.J_muac) >= 11.5 & as.numeric(N13N.J_muac) < 12.5) & (as.numeric(J_childage) > 6 & as.numeric(J_childage) < 60) ~ 1, (as.numeric(N13N.J_muac) >= 12.5) & (as.numeric(J_childage) > 6 & as.numeric(J_childage) < 60) ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$MAM_MUAC))
+
+nutrition_data %>% mutate(MAM_WHZ = case_when((as.numeric(WHZ.Calculated) >= -3 & as.numeric(WHZ.Calculated) < -2) ~ 1, (as.numeric(WHZ.Calculated) >= -2) ~ 0)) -> nutrition_data 
+
+# prop.table(table(nutrition_data$MAM_WHZ))
+
+```
+
+## SAM - CU5
+
+```{r section_sam_cu5}
+
+nutrition_data %>% mutate(SAM_MUAC = case_when((as.numeric(N13N.J_muac) < 11.5) & (as.numeric(J_childage) > 6 & as.numeric(J_childage) < 60) ~ 1, (as.numeric(N13N.J_muac) >= 11.5) & (as.numeric(J_childage) > 6 & as.numeric(J_childage) < 60) ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$SAM_MUAC))
+
+nutrition_data %>% mutate(SAM_WHZ = case_when((as.numeric(WHZ.Calculated) < -3) ~ 1, (as.numeric(WHZ.Calculated) >= -3) ~ 0)) -> nutrition_data
+
+# prop.table(table(nutrition_data$SAM_WHZ))
+
+nutrition_data %>% mutate(SAM_BPO = case_when((N13N.oedema == "Yes") ~ 1, (N13N.oedema == "No") ~ 0)) -> nutrition_data 
+                          
+# prop.table(table(nutrition_data$SAM_BPO))
+
+```
+
+## Malnutrition - PLW
+
+```{r section_plw}
+
+plw_nutrition_data %>% mutate(PLW_AMN_MUAC = case_when((as.numeric(SectQ_anthropometry.Q03_m) < 23) ~ 1, (as.numeric(SectQ_anthropometry.Q03_m) >= 23) ~ 0)) -> plw_nutrition_data
+
+# table(plw_nutrition_data$PLW_AMN_MUAC)
+
+plw_nutrition_data %>% mutate(PLW_AMN_BMI = case_when((as.numeric(SectQ_anthropometry.bmi) < 18.5) ~ 1, (as.numeric(SectQ_anthropometry.bmi) >= 18.5) ~ 0)) -> plw_nutrition_data
+
+# table(plw_nutrition_data$PLW_AMN_BMI)
+
+```
+
